@@ -61,8 +61,9 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 import static com.cx.restclient.common.CxPARAM.*;
 import static com.cx.restclient.httpClient.utils.ContentType.CONTENT_TYPE_APPLICATION_JSON;
@@ -84,6 +85,8 @@ public class CxHttpClient {
     private static String HTTPS_USERNAME = System.getProperty("https.proxyUser");
     private static String HTTPS_PASSWORD = System.getProperty("https.proxyPassword");
 
+    private static final String LOGIN_FAILED_MSG = "Fail to login with windows authentication: ";
+
     private static HttpClient apacheClient;
 
     private Logger log;
@@ -96,6 +99,7 @@ public class CxHttpClient {
     private String teamPath;
     private CookieStore cookieStore = new BasicCookieStore();
     private HttpClientBuilder cb = HttpClients.custom();
+    private final Map<String,String> customHeaders = new HashMap<>();
 
     public CxHttpClient(String rootUri, String origin, boolean disableSSLValidation, boolean isSSO, String refreshToken,
                         @Nullable ProxyConfig proxyConfig, Logger log) throws CxClientException {
@@ -194,9 +198,16 @@ public class CxHttpClient {
 
     public void login(LoginSettings settings) throws IOException, CxClientException {
         lastLoginSettings = settings;
+
+        if(!settings.getSessionCookies().isEmpty()){
+            setSessionCookies(settings.getSessionCookies());
+            return;
+        }
+
         if (settings.getRefreshToken() != null) {
             token = getAccessTokenFromRefreshToken(settings);
-        } else if (useSSo) {
+        }
+        else if (useSSo) {
             if (settings.getVersion().equals("lower than 9.0")) {
                 ssoLegacyLogin();
             } else {
@@ -207,12 +218,9 @@ public class CxHttpClient {
         }
     }
 
-    public void ssoLegacyLogin() throws CxClientException {
+    public ArrayList<Cookie> ssoLegacyLogin() throws CxClientException {
         HttpUriRequest request;
         HttpResponse loginResponse = null;
-
-        String cxCookie = null;
-        String csrfToken = null;
 
         try {
             request = RequestBuilder.post()
@@ -224,13 +232,22 @@ public class CxHttpClient {
             loginResponse = apacheClient.execute(request);
 
         } catch (IOException e) {
-            log.error("Fail to login with windows authentication: " + e.getMessage());
-            throw new CxClientException("Fail to login with windows authentication: " + e.getMessage());
+            log.error(LOGIN_FAILED_MSG + e.getMessage());
+            throw new CxClientException(LOGIN_FAILED_MSG + e.getMessage());
         } finally {
             HttpClientUtils.closeQuietly(loginResponse);
         }
+        setSessionCookies(cookieStore.getCookies());
 
-        for (Cookie cookie : cookieStore.getCookies()) {
+        //return cookies clone - for IDE's usage
+        return new ArrayList<>(cookieStore.getCookies());
+    }
+
+    private void setSessionCookies(List<Cookie> cookies){
+        String cxCookie = null;
+        String csrfToken = null;
+
+        for (Cookie cookie : cookies) {
             if (cookie.getName().equals(CSRF_TOKEN_HEADER)) {
                 csrfToken = cookie.getValue();
             }
@@ -291,8 +308,8 @@ public class CxHttpClient {
             response = apacheClient.execute(request);
             return extractToken(response);
         } catch (IOException e) {
-            log.error("Fail to login with windows authentication: " + e.getMessage());
-            throw new CxClientException("Fail to login with windows authentication: " + e.getMessage());
+            log.error(LOGIN_FAILED_MSG + e.getMessage());
+            throw new CxClientException(LOGIN_FAILED_MSG + e.getMessage());
         }
     }
 
@@ -434,6 +451,11 @@ public class CxHttpClient {
         this.teamPath = teamPath;
     }
 
+    public void addCustomHeader(String name, String value) {
+        log.debug(String.format("Adding a custom header: %s: %s", name, value));
+        customHeaders.put(name, value);
+    }
+
     private <T> T request(HttpRequestBase httpMethod, String contentType, HttpEntity entity, Class<T> responseType, int expectStatus, String failedMsg, boolean isCollection, boolean retry) throws IOException, CxClientException {
         if (contentType != null) {
             httpMethod.addHeader("Content-type", contentType);
@@ -451,10 +473,14 @@ public class CxHttpClient {
                 httpMethod.addHeader(HttpHeaders.AUTHORIZATION, token.getToken_type() + " " + token.getAccess_token());
             }
 
+            for (Map.Entry<String, String> entry : customHeaders.entrySet()) {
+                httpMethod.addHeader(entry.getKey(), entry.getValue());
+            }
+
             response = apacheClient.execute(httpMethod);
             statusCode = response.getStatusLine().getStatusCode();
 
-            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_UNAUTHORIZED) { //Token expired
+            if (statusCode == HttpStatus.SC_UNAUTHORIZED) { // Token has probably expired
                 throw new CxTokenExpiredException(extractResponseBody(response));
             }
 
@@ -466,7 +492,7 @@ public class CxHttpClient {
             throw new CxHTTPClientException(ErrorMessage.CHECKMARX_SERVER_CONNECTION_FAILED.getErrorMessage());
         } catch (CxTokenExpiredException ex) {
             if (retry) {
-                log.warn("Access token expired for request: " + httpMethod.getURI() + ", Status code:" + statusCode + "requesting a new token. message: " + ex.getMessage());
+                logTokenError(httpMethod, statusCode, ex);
                 login(lastLoginSettings);
                 return request(httpMethod, contentType, entity, responseType, expectStatus, failedMsg, isCollection, false);
             }
@@ -517,6 +543,21 @@ public class CxHttpClient {
         } catch (UnsupportedEncodingException e) {
             throw new CxClientException(e.getMessage());
         }
+    }
+
+    public void setToken(TokenLoginResponse token){
+        this.token = token;
+    }
+
+    private void logTokenError(HttpRequestBase httpMethod, int statusCode, CxTokenExpiredException ex) {
+        String message = String.format("Received status code %d for URL: %s with the message: %s",
+                statusCode,
+                httpMethod.getURI(),
+                ex.getMessage());
+
+        log.warn(message);
+
+        log.info("Possible reason: access token has expired. Trying to request a new token...");
     }
 
 }

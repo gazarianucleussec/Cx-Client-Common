@@ -13,6 +13,8 @@ import java.util.Date;
  */
 public abstract class Waiter<T> {
 
+    private static final String FAILED_MSG = "Failed to get status from ";
+
     private int retry;
     private String scanType;
     private int sleepIntervalSec;
@@ -34,14 +36,14 @@ public abstract class Waiter<T> {
             statusResponse = getStatus(taskId);
 
             while (isTaskInProgress(statusResponse) && (scanTimeoutSec <= 0 || elapsedTimeSec < scanTimeoutSec)) {
-                Thread.sleep(sleepIntervalSec * 1000);
+                Thread.sleep((long)sleepIntervalSec * 1000);
                 try {
                     statusResponse = getStatus(taskId);
                 } catch (Exception e) {
-                    log.debug("Failed to get status from " + scanType + ". retrying (" + (retry - 1) + " tries left). Error message: " + e.getMessage());
+                    log.debug(FAILED_MSG + scanType + ". retrying (" + (retry - 1) + " tries left). Error message: " + e.getMessage());
                     retry--;
                     if (retry <= 0) {
-                        throw new CxClientException("Failed to get status from " + scanType + ". Error message: " + e.getMessage(), e);
+                        throw new CxClientException(FAILED_MSG + scanType + ". Error message: " + e.getMessage(), e);
                     }
                     continue;
                 }
@@ -53,7 +55,7 @@ public abstract class Waiter<T> {
                 throw new CxClientException("Failed to perform " + scanType + ": " + scanType + " has been automatically aborted: reached the user-specified timeout (" + scanTimeoutSec / 60 + " minutes)");
             }
         } catch (Exception e) {
-            throw new CxClientException("Failed to get status from " + scanType + ". Error message: " + e.getMessage(), e);
+            throw new CxClientException(FAILED_MSG + scanType + ". Error message: " + e.getMessage(), e);
         }
         return resolveStatus(statusResponse);
     }

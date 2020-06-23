@@ -13,6 +13,7 @@ import com.cx.restclient.osa.dto.ClientType;
 import com.cx.restclient.sast.dto.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpResponseException;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 
@@ -25,8 +26,7 @@ import java.util.Properties;
 
 import static com.cx.restclient.common.CxPARAM.*;
 import static com.cx.restclient.cxArm.utils.CxARMUtils.getPoliciesNames;
-import static com.cx.restclient.httpClient.utils.ContentType.CONTENT_TYPE_APPLICATION_JSON_V1;
-import static com.cx.restclient.httpClient.utils.ContentType.CONTENT_TYPE_APPLICATION_JSON_V21;
+import static com.cx.restclient.httpClient.utils.ContentType.*;
 import static com.cx.restclient.httpClient.utils.HttpClientHelper.convertToJson;
 import static com.cx.restclient.sast.utils.SASTParam.*;
 
@@ -37,6 +37,7 @@ import static com.cx.restclient.sast.utils.SASTParam.*;
 //System Holistic Rest Api Generic Application
 public class CxShragaClient {
     private static final String DEFAULT_AUTH_API_PATH = "CxRestApi/auth/";
+    private static final String PRINT_LINE = "-----------------------------------------------------------------------------------------";
 
     private CxHttpClient httpClient;
     private Logger log;
@@ -187,7 +188,7 @@ public class CxShragaClient {
 
     public void printIsProjectViolated() {
         if (config.getEnablePolicyViolations()) {
-            log.info("-----------------------------------------------------------------------------------------");
+            log.info(PRINT_LINE);
             log.info("Policy Management: ");
             log.info("--------------------");
 
@@ -198,7 +199,7 @@ public class CxShragaClient {
 
             if (sastResults.getSastPolicies().isEmpty() && !hasOsaViolations) {
                 log.info(PROJECT_POLICY_COMPLIANT_STATUS);
-                log.info("-----------------------------------------------------------------------------------------");
+                log.info(PRINT_LINE);
             } else {
                 log.info(PROJECT_POLICY_VIOLATED_STATUS);
                 if (!sastResults.getSastPolicies().isEmpty()) {
@@ -207,7 +208,7 @@ public class CxShragaClient {
                 if (hasOsaViolations) {
                     log.info("OSA violated policies names: " + getPoliciesNames(dependencyScanResults.getOsaResults().getOsaPolicies()));
                 }
-                log.info("-----------------------------------------------------------------------------------------");
+                log.info(PRINT_LINE);
             }
         }
     }
@@ -247,7 +248,7 @@ public class CxShragaClient {
 
         try {
             httpClient.setTeamPathHeader(this.teamPath);
-            projects = (List<Project>) httpClient.getRequest(SAST_GET_All_PROJECTS, CONTENT_TYPE_APPLICATION_JSON_V1, Project.class, 200, "all projects", true);
+            projects = (List<Project>) httpClient.getRequest(SAST_GET_ALL_PROJECTS, CONTENT_TYPE_APPLICATION_JSON_V1, Project.class, 200, "all projects", true);
         } catch (HttpResponseException ex) {
             if (ex.getStatusCode() != 404) {
                 throw ex;
@@ -271,6 +272,11 @@ public class CxShragaClient {
     public void login(String version) throws IOException, CxClientException {
         // perform login to server
         log.info("Logging into the Checkmarx service.");
+
+        if(config.getToken() != null){
+            httpClient.setToken(config.getToken());
+            return;
+        }
         LoginSettings settings = getDefaultLoginSettings();
         settings.setRefreshToken(config.getRefreshToken());
         settings.setVersion(version);
@@ -475,12 +481,12 @@ public class CxShragaClient {
         return projects;
     }
 
-    public Project getProjectById(String projectId) throws IOException, CxClientException {
+    public Project getProjectById(String projectId,String contentType) throws IOException, CxClientException {
         String projectNamePath = SAST_GET_PROJECT_BY_ID.replace("{projectId}", projectId);
         Project projects = null;
         try {
             httpClient.setTeamPathHeader(this.teamPath);
-            projects = httpClient.getRequest(projectNamePath, CONTENT_TYPE_APPLICATION_JSON_V21, Project.class, 200, "project by id: " + projectId, false);
+            projects = httpClient.getRequest(projectNamePath, contentType, Project.class, 200, "project by id: " + projectId, false);
         } catch (CxHTTPClientException ex) {
             if (ex.getStatusCode() != 404) {
                 throw ex;
@@ -504,7 +510,7 @@ public class CxShragaClient {
 
         result.setUsername(config.getUsername());
         result.setPassword(config.getPassword());
-
+        result.getSessionCookies().addAll(config.getSessionCookie());
         result.setClientTypeForPasswordAuth(ClientType.RESOURCE_OWNER);
         result.setClientTypeForRefreshToken(ClientType.CLI);
 
@@ -543,5 +549,9 @@ public class CxShragaClient {
 
     public List<LastScanResponse> getLastScansByProjectId(long projectId) throws IOException {
         return sastClient.getLatestSASTStatus(projectId);
+    }
+
+    public List<Cookie> ssoLegacyLogin(){
+        return httpClient.ssoLegacyLogin();
     }
 }
