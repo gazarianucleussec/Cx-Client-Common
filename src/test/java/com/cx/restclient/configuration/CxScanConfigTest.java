@@ -26,12 +26,13 @@ public class CxScanConfigTest {
         boolean disableCertificateValidation = false;
         CxScanConfig cxScanConfigWithParameters = new CxScanConfig(url, username, password, cxOrigin, disableCertificateValidation);
 
-        assertEquals("Incorrect URL", cxScanConfigWithParameters.getUrl(), url);
-        assertEquals("Incorrect userName", cxScanConfigWithParameters.getUsername(), username);
-        assertEquals("Incorrect password", cxScanConfigWithParameters.getPassword(), password);
-        assertEquals("Incorrect CxOrigin", cxScanConfigWithParameters.getCxOrigin(), cxOrigin);
-        assertEquals("Incorrect disableCertificateValidation", cxScanConfigWithParameters.isDisableCertificateValidation(), disableCertificateValidation);
+        assertEquals("Incorrect URL", url, cxScanConfigWithParameters.getUrl());
+        assertEquals("Incorrect userName", username, cxScanConfigWithParameters.getUsername());
+        assertEquals("Incorrect password", password, cxScanConfigWithParameters.getPassword());
+        assertEquals("Incorrect CxOrigin", cxOrigin, cxScanConfigWithParameters.getCxOrigin());
+        assertEquals("Incorrect disableCertificateValidation", disableCertificateValidation, cxScanConfigWithParameters.isDisableCertificateValidation());
     }
+
 
 
     @Test
@@ -41,22 +42,22 @@ public class CxScanConfigTest {
 
         logUnitTests.info("1 test --> Set 'setSastEnabled' to value 'false' and validate that get 'false' value\n");
         cxScanConfig.setSastEnabled(false);
-        assertEquals("I expected to get 'false' value but got different value", cxScanConfig.getSastEnabled(), false);
+        assertEquals("I expected to get 'false' value but got different value", cxScanConfig.isSastEnabled(), false);
 
 
         logUnitTests.info("2 test --> Set 'setSastEnabled' to value 'true' and validate that get 'true' value\n");
         cxScanConfig.setSastEnabled(true);
-        assertEquals("I expected to get 'true' value but got different value", cxScanConfig.getSastEnabled(), true);
+        assertEquals("I expected to get 'true' value but got different value", cxScanConfig.isSastEnabled(), true);
 
 
         logUnitTests.info("3 test --> Negative test - Set 'setSastEnabled' to value 'true' and validate that get 'false' value\n");
         cxScanConfig.setSastEnabled(true);
-        assertEquals("Negative test - expected to see different values", !(cxScanConfig.getSastEnabled()), false);
+        assertEquals("Negative test - expected to see different values", !(cxScanConfig.isSastEnabled()), false);
 
 
         logUnitTests.info("4 test --> Negative test - Set 'setSastEnabled' to value 'false' and validate that get 'true' value\n");
         cxScanConfig.setSastEnabled(false);
-        assertEquals("Negative test - expected to see different values", !(cxScanConfig.getSastEnabled()), true);
+        assertEquals("Negative test - expected to see different values", !(cxScanConfig.isSastEnabled()), true);
 
     }
 
