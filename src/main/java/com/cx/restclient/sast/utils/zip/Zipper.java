@@ -7,7 +7,6 @@ package com.cx.restclient.sast.utils.zip;
 
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.zip.ZipEntry;
 import org.apache.tools.zip.ZipOutputStream;
@@ -26,23 +25,24 @@ public class Zipper {
         this.log = log;
     }
 
-    public void zip(File baseDir, String[] filterIncludePatterns, String[] filterExcludePatterns, OutputStream outputStream, long maxZipSize, ZipListener listener) throws IOException {
+    public void zip(File baseDir, String[] filterExcludePatterns, OutputStream outputStream, long maxZipSize, ZipListener listener) throws IOException {
         assert baseDir != null : "baseDir must not be null";
         assert outputStream != null : "outputStream must not be null";
 
-        filterIncludePatterns = ArrayUtils.contains(filterIncludePatterns, "**/*") ? filterIncludePatterns : ArrayUtils.add(filterIncludePatterns, "**/*");
+        String[] filterIncludePatterns = new String[]{"**/*"};//the default is to include all files
         DirectoryScanner ds = createDirectoryScanner(baseDir, filterIncludePatterns, filterExcludePatterns);
         ds.scan();
-        printDebug(ds);
-        if (ds.getIncludedFiles().length == 0) {
+//        printDebug(ds);
+        String[] includedFiles = ds.getIncludedFiles();
+        if (includedFiles.length == 0) {
             outputStream.close();
             log.info("No files to zip");
             throw new NoFilesToZip();
         }
-        zipFile(baseDir, ds.getIncludedFiles(), outputStream, maxZipSize, listener);
+        zipFile(baseDir, includedFiles, outputStream, maxZipSize, listener);
     }
 
-    private synchronized void zipFile(File baseDir, String[] files, OutputStream outputStream, long maxZipSize, ZipListener listener) throws IOException {
+    private void zipFile(File baseDir, String[] files, OutputStream outputStream, long maxZipSize, ZipListener listener) throws IOException {
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream)) {
             zipOutputStream.setEncoding("UTF8");
             long compressedSize = 0;
@@ -63,6 +63,10 @@ public class Zipper {
                     throw new MaxZipSizeReached(compressedSize, maxZipSize);
                 }
 
+                if (listener != null) {
+                    listener.updateProgress(fileName, compressedSize);
+                }
+
                 ZipEntry zipEntry = new ZipEntry(fileName);
                 zipOutputStream.putNextEntry(zipEntry);
 
@@ -71,10 +75,6 @@ public class Zipper {
                 fileInputStream.close();
                 zipOutputStream.closeEntry();
                 compressedSize += zipEntry.getCompressedSize();
-
-                if (listener != null) {
-                    listener.updateProgress(fileName, compressedSize);
-                }
             }
         }
     }

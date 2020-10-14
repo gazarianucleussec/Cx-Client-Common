@@ -12,34 +12,26 @@ import java.io.IOException;
 
 public class CxZip {
 
-    private long maxZipSizeInBytes = 209715200L;
-    private int numOfZippedFiles = 0;
+    private static final long defaultMaxZipSize = 209715200L;
+    private static int numOfZippedFiles;
 
-    private String tempFileName;
-    private Logger log;
-
-    public CxZip(String tempFileName, long maxZipSizeInBytes, Logger log) {
-        this.tempFileName = tempFileName;
-        this.log = log;
-        this.maxZipSizeInBytes = maxZipSizeInBytes;
-    }
-
-    public byte[] zipWorkspaceFolder(File baseDir, PathFilter filter) throws IOException {
+    public static byte[] zipWorkspaceFolder(File baseDir, PathFilter filter, Long maxZipSizeInBytes, Logger log) throws IOException {
         log.info("Zipping workspace: '" + baseDir + "'");
-
-        ZipListener zipListener = new ZipListener() {
-            public void updateProgress(String fileName, long size) {
-                numOfZippedFiles++;
-                log.info("Zipping (" + FileUtils.byteCountToDisplaySize(size) + "): " + fileName);
-            }
-        };
+        numOfZippedFiles = 0;
+        long maxZipSize = maxZipSizeInBytes != null ? maxZipSizeInBytes : defaultMaxZipSize;
 
         byte[] zipFileBA;
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
             try {
-                new Zipper(log).zip(baseDir, filter.getIncludes(), filter.getExcludes(), byteArrayOutputStream, maxZipSizeInBytes, zipListener);
+                ZipListener zipListener = new ZipListener() {
+                    public void updateProgress(String fileName, long size) {
+                        numOfZippedFiles++;
+                        log.info("Zipping (" + FileUtils.byteCountToDisplaySize(size) + "): " + fileName);
+                    }
+                };
+                new Zipper(log).zip(baseDir, filter.getExcludes(), byteArrayOutputStream, maxZipSize, zipListener);
             } catch (Zipper.MaxZipSizeReached e) {
-                throw new IOException("Reached maximum upload size limit of " + FileUtils.byteCountToDisplaySize(maxZipSizeInBytes));
+                throw new IOException("Reached maximum upload size limit of " + FileUtils.byteCountToDisplaySize(maxZipSize));
             } catch (Zipper.NoFilesToZip e) {
                 throw new IOException("No files to zip");
             }
@@ -50,20 +42,6 @@ public class CxZip {
             zipFileBA = byteArrayOutputStream.toByteArray();
         }
         return zipFileBA;
-    }
-
-    public CxZip setMaxZipSizeInBytes(long maxZipSizeInBytes) {
-        this.maxZipSizeInBytes = maxZipSizeInBytes;
-        return this;
-    }
-
-    public CxZip setTempFileName(String tempFileName) {
-        this.tempFileName = tempFileName;
-        return this;
-    }
-
-    public String getTempFileName() {
-        return tempFileName;
     }
 
 }

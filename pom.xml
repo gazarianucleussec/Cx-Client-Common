@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.checkmarx</groupId>
     <artifactId>cx-client-common</artifactId>
-    <version>2020.2.27.SCA</version>
+    <version>2020.2.29.SCA</version>
     <packaging>jar</packaging>
     <name>Checkmarx Client</name>
     <description>Web client for interaction with Checkmarx SAST, SCA and OSA products</description>
@@ -121,6 +121,11 @@
             <version>2.3.23</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>1.10.7</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpmime</artifactId>
             <version>4.5.4</version>
@@ -180,6 +185,10 @@
             <artifactId>cx-ws-fs-agent</artifactId>
             <version>20.0.9</version>
             <exclusions>
+                <exclusion>
+                    <groupId>org.apache.ant</groupId>
+                    <artifactId>ant</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>javax.xml.bind</groupId>
                     <artifactId>jaxb-api</artifactId>
