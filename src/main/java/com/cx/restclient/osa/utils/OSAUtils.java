@@ -186,7 +186,7 @@ public abstract class OSAUtils {
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObj);
 
             if (cliOsaGenerateJsonReport) {
-                workDirectory = new File(workDirectory.getPath().replace(".json", "_" + name + ".json"));
+                //workDirectory = new File(workDirectory.getPath().replace(".json", "_" + name + ".json"));
                 if (!workDirectory.isAbsolute()) {
                     workDirectory = new File(System.getProperty("user.dir") + CX_REPORT_LOCATION + File.separator + workDirectory);
                 }
@@ -196,13 +196,13 @@ public abstract class OSAUtils {
                 name = name.endsWith(".json") ? name : name + ".json";
                 File jsonFile = new File(workDirectory + File.separator + name);
                 FileUtils.writeStringToFile(jsonFile, json);
-                log.info(name + " json location: " + jsonFile);
+                log.info(name + " saved under location: " + jsonFile);
             } else {
                 String now = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(new Date());
                 String fileName = name + "_" + now + ".json";
                 File jsonFile = new File(workDirectory + CX_REPORT_LOCATION, fileName);
                 FileUtils.writeStringToFile(jsonFile, json);
-                log.info(name + " json location: " + workDirectory + CX_REPORT_LOCATION + File.separator + fileName);
+                log.info(name + " saved under location: " + workDirectory + CX_REPORT_LOCATION + File.separator + fileName);
             }
         } catch (Exception ex) {
             log.warn("Failed to write OSA JSON report (" + name + ") to file: " + ex.getMessage());
