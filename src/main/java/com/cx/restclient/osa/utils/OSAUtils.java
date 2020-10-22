@@ -25,6 +25,7 @@ public abstract class OSAUtils {
             "p6", "php", "py", "rb", "swift", "clj", "cljx", "cljs", "cljc"};
 
     private static final String INCLUDE_ALL_EXTENSIONS = "**/**";
+    private static final String JSON_EXTENSION = ".json";
 
     public static final String DEFAULT_ARCHIVE_INCLUDES = "**/.*jar,**/*.war,**/*.ear,**/*.sca,**/*.gem,**/*.whl,**/*.egg,**/*.tar,**/*.tar.gz,**/*.tgz,**/*.zip,**/*.rar";
 
@@ -193,13 +194,13 @@ public abstract class OSAUtils {
                 if (!workDirectory.getParentFile().exists()) {
                     workDirectory.getParentFile().mkdirs();
                 }
-                name = name.endsWith(".json") ? name : name + ".json";
+                name = name.endsWith(JSON_EXTENSION) ? name : name + JSON_EXTENSION;
                 File jsonFile = new File(workDirectory + File.separator + name);
                 FileUtils.writeStringToFile(jsonFile, json);
                 log.info(name + " saved under location: " + jsonFile);
             } else {
                 String now = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(new Date());
-                String fileName = name + "_" + now + ".json";
+                String fileName = name + "_" + now + JSON_EXTENSION;
                 File jsonFile = new File(workDirectory + CX_REPORT_LOCATION, fileName);
                 FileUtils.writeStringToFile(jsonFile, json);
                 log.info(name + " saved under location: " + workDirectory + CX_REPORT_LOCATION + File.separator + fileName);
