@@ -113,11 +113,11 @@ public class CxHttpClient {
             cb.setConnectionManager(getHttpConnManager(false));
         }
         cb.setConnectionManagerShared(true);
-        if (proxyHost != null) {
+/*        if (proxyHost != null) {
             setCustomProxy(cb, proxyHost, proxyPort, proxyUser, proxyPassword, logi);
         } else {
             setProxy(cb, logi);
-        }
+        }*/
 
         cb.setConnectionReuseStrategy(new NoConnectionReuseStrategy());
         cb.setDefaultAuthSchemeRegistry(getAuthSchemeProviderRegistry());
@@ -129,7 +129,7 @@ public class CxHttpClient {
         this(hostname, username, password, origin, disableSSLValidation, logi, null, 0, null, null);
     }
 
-    private static void setCustomProxy(HttpClientBuilder cb, String proxyHost, int proxyPort, String proxyUser, String proxyPassword, Logger logi) {
+/*    private static void setCustomProxy(HttpClientBuilder cb, String proxyHost, int proxyPort, String proxyUser, String proxyPassword, Logger logi) {
         HttpHost proxy = null;
         if (!isEmpty(proxyHost)) {
             proxy = new HttpHost(proxyHost, proxyPort, "http");
@@ -169,7 +169,7 @@ public class CxHttpClient {
             cb.setProxy(proxyHost);
             cb.setProxyAuthenticationStrategy(new ProxyAuthenticationStrategy());
         }
-    }
+    }*/
 
     private static DefaultProxyRoutePlanner getRoutePlanner(HttpHost proxyHost, Logger logi) {
         return new DefaultProxyRoutePlanner(proxyHost) {
@@ -185,7 +185,7 @@ public class CxHttpClient {
                     for (String nonHost : hosts) {
                         try {
                             if (hostname.matches(nonHost)) {
-                                System.out.println("Host matched: " + nonHost);
+                                logi.info("Host matched: " + nonHost);
                             }
                         } catch (PatternSyntaxException e) {
                             logi.warn("Wrong nonProxyHost param: " + nonHost);
