@@ -1,6 +1,7 @@
 package com.cx.restclient.dto;
 
 import com.cx.restclient.common.ShragaUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -26,5 +27,9 @@ public class PathFilter {
 
     private static String[] getArray(Map<String, List<String>> map, String key){
         return map.get(key).toArray(new String[0]);
+    }
+
+    public void addToIncludes(String element) {
+        includes = ArrayUtils.add(includes, element);
     }
 }
