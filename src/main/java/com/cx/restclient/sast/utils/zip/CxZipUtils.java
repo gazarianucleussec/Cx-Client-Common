@@ -30,7 +30,6 @@ public abstract class CxZipUtils {
 
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             CxZip.zipWorkspaceFolder(new File(sourceDir), filter, maxZipSize, byteArrayOutputStream);
-            log.info("Compressed file size is: " + FileUtils.byteCountToDisplaySize(byteArrayOutputStream.size()));
             validateZippedSources(maxZipSize, byteArrayOutputStream);
             zipFile = byteArrayOutputStream.toByteArray();
         }

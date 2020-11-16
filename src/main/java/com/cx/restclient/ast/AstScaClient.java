@@ -236,7 +236,7 @@ public class AstScaClient extends AstClient implements Scanner {
                 response = submitSourcesFromRemoteRepo(scaConfig, projectId);
             } else {
                 if (scaConfig.isIncludeSources()) {
-                    response = submitAllSourcesFromLocalDir(projectId, astScaConfig.getZipFilePath());
+                    response = submitAllSourcesFromLocalDir(projectId);
                 } else {
                     response = submitManifestsAndFingerprintsFromLocalDir(projectId);
                 }
@@ -251,14 +251,14 @@ public class AstScaClient extends AstClient implements Scanner {
         return scaResults;
     }
 
-    protected HttpResponse submitAllSourcesFromLocalDir(String projectId, String zipFilePath) throws IOException {
+    protected HttpResponse submitAllSourcesFromLocalDir(String projectId) throws IOException {
         log.info("Using local directory flow.");
 
         PathFilter filter = new PathFilter(config.getOsaFolderExclusions(), config.getOsaFilterPattern());
         String sourceDir = config.getEffectiveSourceDirForDependencyScan();
         byte[] zipFile = CxZipUtils.getZippedSources(config, filter, sourceDir);
 
-        return initiateScanForUpload(projectId, zipFile, zipFilePath);
+        return initiateScanForUpload(projectId, zipFile);
     }
 
     private HttpResponse submitManifestsAndFingerprintsFromLocalDir(String projectId) throws IOException {
@@ -292,7 +292,7 @@ public class AstScaClient extends AstClient implements Scanner {
 
         optionallyWriteFingerprintsToFile(fingerprints);
 
-        return initiateScanForUpload(projectId, FileUtils.readFileToByteArray(zipFile), astScaConfig.getZipFilePath());
+        return initiateScanForUpload(projectId, FileUtils.readFileToByteArray(zipFile));
     }
 
 

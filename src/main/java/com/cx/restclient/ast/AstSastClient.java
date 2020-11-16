@@ -129,8 +129,7 @@ public class AstSastClient extends AstClient implements Scanner {
             if (locationType == SourceLocationType.REMOTE_REPOSITORY) {
                 response = submitSourcesFromRemoteRepo(astConfig, config.getProjectName());
             } else {
-
-                response = submitAllSourcesFromLocalDir(config.getProjectName(), astConfig.getZipFilePath());
+                response = submitAllSourcesFromLocalDir(config.getProjectName());
             }
             scanId = extractScanIdFrom(response);
             astResults.setScanId(scanId);
@@ -142,14 +141,14 @@ public class AstSastClient extends AstClient implements Scanner {
         return astResults;
     }
 
-    protected HttpResponse submitAllSourcesFromLocalDir(String projectId, String zipFilePath) throws IOException {
+    protected HttpResponse submitAllSourcesFromLocalDir(String projectId) throws IOException {
         log.info("Using local directory flow.");
 
         PathFilter filter = new PathFilter("", "");
         String sourceDir = config.getSourceDir();
         byte[] zipFile = CxZipUtils.getZippedSources(config, filter, sourceDir);
 
-        return initiateScanForUpload(projectId, zipFile, zipFilePath);
+        return initiateScanForUpload(projectId, zipFile);
     }
 
     @Override
