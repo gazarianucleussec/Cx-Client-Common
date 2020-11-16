@@ -4,6 +4,7 @@ import com.cx.restclient.dto.BaseStatus;
 import com.cx.restclient.dto.Status;
 import com.cx.restclient.exception.CxClientException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Date;
@@ -12,6 +13,8 @@ import java.util.Date;
  * Created by Galn on 13/02/2018.
  */
 public abstract class Waiter<T> {
+
+    public static final Logger log = LoggerFactory.getLogger(Waiter.class);
 
     private static final String FAILED_MSG = "Failed to get status from ";
 
@@ -27,7 +30,7 @@ public abstract class Waiter<T> {
 
     private long startTimeSec;
 
-    public T waitForTaskToFinish(String taskId, Integer scanTimeoutSec, Logger log) throws CxClientException {
+    public T waitForTaskToFinish(String taskId, Integer scanTimeoutSec) throws CxClientException {
         startTimeSec = System.currentTimeMillis() / 1000;
         long elapsedTimeSec = 0L;
         T statusResponse;

@@ -15,6 +15,7 @@ import com.cx.restclient.sast.dto.SASTResults;
 import com.cx.restclient.sast.utils.State;
 import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.util.EnumMap;
@@ -29,39 +30,40 @@ import static com.cx.restclient.cxArm.utils.CxARMUtils.getPoliciesNames;
  */
 
 public class CxClientDelegator implements Scanner {
+
+    public static final Logger log = LoggerFactory.getLogger(CxClientDelegator.class);
+
     private static final PropertyFileLoader properties = PropertyFileLoader.getDefaultInstance();
 
     private static final String PRINT_LINE = "-----------------------------------------------------------------------------------------";
 
-    private Logger log;
     private CxScanConfig config;
 
     Map<ScannerType, Scanner> scannersMap = new EnumMap<>(ScannerType.class);
 
-    public CxClientDelegator(CxScanConfig config, Logger log) throws MalformedURLException {
+    public CxClientDelegator(CxScanConfig config) throws MalformedURLException {
 
         this.config = config;
-        this.log = log;
         if (config.isAstSastEnabled()) {
-            scannersMap.put(ScannerType.AST_SAST, new AstSastClient(config, log));
+            scannersMap.put(ScannerType.AST_SAST, new AstSastClient(config));
         }
 
         if (config.isSastEnabled()) {
-            scannersMap.put(ScannerType.SAST, new CxSASTClient(config, log));
+            scannersMap.put(ScannerType.SAST, new CxSASTClient(config));
         }
 
         if (config.isOsaEnabled()) {
-            scannersMap.put(ScannerType.OSA, new CxOSAClient(config, log));
+            scannersMap.put(ScannerType.OSA, new CxOSAClient(config));
         }
 
         if (config.isAstScaEnabled()) {
-            scannersMap.put(ScannerType.AST_SCA, new AstScaClient(config, log));
+            scannersMap.put(ScannerType.AST_SCA, new AstScaClient(config));
         }
     }
 
 
-    public CxClientDelegator(String serverUrl, String username, String password, String origin, boolean disableCertificateValidation, Logger log) throws MalformedURLException {
-        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), log);
+    public CxClientDelegator(String serverUrl, String username, String password, String origin, boolean disableCertificateValidation) throws MalformedURLException {
+        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation));
     }
 
     @Override

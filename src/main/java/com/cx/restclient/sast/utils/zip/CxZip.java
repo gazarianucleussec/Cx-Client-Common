@@ -4,6 +4,7 @@ package com.cx.restclient.sast.utils.zip;
 import com.cx.restclient.dto.PathFilter;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -11,21 +12,18 @@ import java.io.IOException;
 
 
 public class CxZip {
-    private long maxZipSizeInBytes = 2147483648l;
-    private int numOfZippedFiles = 0;
 
-    private String tempFileName;
-    private Logger log;
+    public static final Logger log = LoggerFactory.getLogger(CxZip.class);
 
-    public CxZip(String tempFileName, long maxZipSizeInBytes, Logger log) {
-        this.tempFileName = tempFileName;
-        this.log = log;
-        this.maxZipSizeInBytes = maxZipSizeInBytes;
-    }
+    private static int numOfZippedFiles;
 
-    public byte[] zipWorkspaceFolder(File baseDir, PathFilter filter) throws IOException {
+
+    public static void zipWorkspaceFolder(File baseDir, PathFilter filter, long maxZipSize, ByteArrayOutputStream byteArrayOutputStream) throws IOException {
+        numOfZippedFiles = 0;
         log.info("Zipping workspace: '" + baseDir + "'");
-
+        if (!isProjectDirectoryValid(baseDir.getAbsolutePath())) {
+            return;
+        }
         ZipListener zipListener = new ZipListener() {
             public void updateProgress(String fileName, long size) {
                 numOfZippedFiles++;
@@ -33,36 +31,34 @@ public class CxZip {
             }
         };
 
-        byte[] zipFileBA;
-        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+        try {
             try {
-                new Zipper(log).zip(baseDir, filter.getIncludes(), filter.getExcludes(), byteArrayOutputStream, maxZipSizeInBytes, zipListener);
+                new Zipper().zip(baseDir, filter.getIncludes(), filter.getExcludes(), byteArrayOutputStream, maxZipSize, zipListener);
             } catch (Zipper.MaxZipSizeReached e) {
-                throw new IOException("Reached maximum upload size limit of " + FileUtils.byteCountToDisplaySize(maxZipSizeInBytes));
+                throw new IOException("Reached maximum upload size limit of " + FileUtils.byteCountToDisplaySize(maxZipSize));
             } catch (Zipper.NoFilesToZip e) {
                 throw new IOException("No files to zip");
             }
 
             log.info("Zipping complete with " + numOfZippedFiles + " files, total compressed size: " +
                     FileUtils.byteCountToDisplaySize(byteArrayOutputStream.size()));
-
-            zipFileBA = byteArrayOutputStream.toByteArray();
+        } catch (Exception e) {
+            log.error("Error occurred during zipping source files. Error message: " + e.getMessage(), e);
         }
-        return zipFileBA;
     }
 
-    public CxZip setMaxZipSizeInBytes(long maxZipSizeInBytes) {
-        this.maxZipSizeInBytes = maxZipSizeInBytes;
-        return this;
-    }
+    private static boolean isProjectDirectoryValid(String location) {
+        File projectDir = new File(location);
+        if (!projectDir.exists()) {
+            log.error("Project directory [" + location + "] does not exist.");
+            return false;
+        }
 
-    public CxZip setTempFileName(String tempFileName) {
-        this.tempFileName = tempFileName;
-        return this;
-    }
-
-    public String getTempFileName() {
-        return tempFileName;
+        if (!projectDir.isDirectory()) {
+            log.error("Project path [" + location + "] should point to a directory.");
+            return false;
+        }
+        return true;
     }
 
 }

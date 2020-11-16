@@ -28,6 +28,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -38,6 +39,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class AstSastClient extends AstClient implements Scanner {
+
+    public static final Logger log = LoggerFactory.getLogger(AstSastClient.class);
+
     private static final String ENGINE_TYPE_FOR_API = "sast";
     private static final String REF_TYPE_BRANCH = "branch";
     private static final String SUMMARY_PATH = properties.get("astSast.scanSummary");
@@ -60,8 +64,8 @@ public class AstSastClient extends AstClient implements Scanner {
 
     private String scanId;
 
-    public AstSastClient(CxScanConfig config, Logger log) {
-        super(config, log);
+    public AstSastClient(CxScanConfig config) {
+        super(config);
 
         AstSastConfig astConfig = this.config.getAstSastConfig();
         validate(astConfig);
@@ -141,9 +145,9 @@ public class AstSastClient extends AstClient implements Scanner {
     protected HttpResponse submitAllSourcesFromLocalDir(String projectId, String zipFilePath) throws IOException {
         log.info("Using local directory flow.");
 
-        PathFilter filter = new PathFilter("", "", log);
+        PathFilter filter = new PathFilter("", "");
         String sourceDir = config.getSourceDir();
-        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, sourceDir, log);
+        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, sourceDir);
 
         return initiateScanForUpload(projectId, zipFile, zipFilePath);
     }

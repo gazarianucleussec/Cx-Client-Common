@@ -10,6 +10,7 @@ import java.util.Properties;
 
 @Slf4j
 public class PropertyFileLoader {
+
     private static final String DEFAULT_FILENAME = "common.properties";
 
     @Getter(lazy = true)

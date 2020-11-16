@@ -13,10 +13,11 @@ import com.cx.restclient.sast.dto.CreateProjectRequest;
 import com.cx.restclient.sast.dto.CxNameObj;
 import com.cx.restclient.sast.dto.Preset;
 import com.cx.restclient.sast.dto.Project;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -35,18 +36,18 @@ import static com.cx.restclient.sast.utils.SASTParam.*;
  */
 public abstract class LegacyClient {
 
+    public static final Logger log = LoggerFactory.getLogger(LegacyClient.class);
+
     private static final String DEFAULT_AUTH_API_PATH = "CxRestApi/auth/" + AUTHENTICATION;
     protected CxHttpClient httpClient;
     protected CxScanConfig config;
-    protected Logger log;
     private String teamPath;
     protected long projectId;
     private State state = State.SUCCESS;
 
-    public LegacyClient(CxScanConfig config, Logger log) throws MalformedURLException {
+    public LegacyClient(CxScanConfig config) throws MalformedURLException {
         this.config = config;
-        this.log = log;
-        initHttpClient(config, log);
+        initHttpClient(config);
         validateConfig(config);
     }
 
@@ -135,9 +136,9 @@ public abstract class LegacyClient {
         return projects;
     }
 
-    private void initHttpClient(CxScanConfig config, Logger log) throws MalformedURLException {
+    private void initHttpClient(CxScanConfig config) throws MalformedURLException {
 
-        if (!org.apache.commons.lang3.StringUtils.isEmpty(config.getUrl())) {
+        if (!StringUtils.isEmpty(config.getUrl())) {
             httpClient = new CxHttpClient(
                     UrlUtils.parseURLToString(config.getUrl(), "CxRestAPI/"),
                     config.getCxOrigin(),
@@ -145,8 +146,7 @@ public abstract class LegacyClient {
                     config.isUseSSOLogin(),
                     config.getRefreshToken(),
                     config.isProxy(),
-                    config.getProxyConfig(),
-                    log);
+                    config.getProxyConfig());
         }
     }
 

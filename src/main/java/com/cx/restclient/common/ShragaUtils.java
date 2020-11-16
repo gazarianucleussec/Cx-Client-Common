@@ -2,6 +2,7 @@ package com.cx.restclient.common;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -14,12 +15,15 @@ import java.util.Map;
  * Date: 4/12/2018.
  */
 public abstract class ShragaUtils {
-    public static Map<String, List<String>> generateIncludesExcludesPatternLists(String folderExclusions, String filterPattern, Logger log) {
+
+    public static final Logger log = LoggerFactory.getLogger(ShragaUtils.class);
+
+    public static Map<String, List<String>> generateIncludesExcludesPatternLists(String folderExclusions, String filterPattern) {
 
         folderExclusions = removeSpaceAndNewLine(folderExclusions);
         filterPattern = removeSpaceAndNewLine(filterPattern);
 
-        String excludeFoldersPattern = processExcludeFolders(folderExclusions, log);
+        String excludeFoldersPattern = processExcludeFolders(folderExclusions);
         String combinedPatterns = "";
 
         if (StringUtils.isEmpty(filterPattern) && StringUtils.isEmpty(excludeFoldersPattern)) {
@@ -42,7 +46,7 @@ public abstract class ShragaUtils {
         return string;
     }
 
-    public static String processExcludeFolders(String folderExclusions, Logger log) {
+    public static String processExcludeFolders(String folderExclusions) {
         if (StringUtils.isEmpty(folderExclusions)) {
             return "";
         }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.charset.Charset;
@@ -19,6 +20,9 @@ import static com.cx.restclient.common.CxPARAM.CX_REPORT_LOCATION;
  * Created by Galn on 07/02/2018.
  */
 public abstract class OSAUtils {
+
+    public static final Logger log = LoggerFactory.getLogger(OSAUtils.class);
+
     private static final String[] SUPPORTED_EXTENSIONS = {"jar", "war", "ear", "aar", "dll", "exe", "msi", "nupkg", "egg", "whl", "tar.gz", "gem", "deb", "udeb",
             "dmg", "drpm", "rpm", "pkg.tar.xz", "swf", "swc", "air", "apk", "zip", "gzip", "tar.bz2", "tgz", "c", "cc", "cp", "cpp", "css", "c++", "h", "hh", "hpp",
             "hxx", "h++", "m", "mm", "pch", "java", "c#", "cs", "csharp", "go", "goc", "js", "plx", "pm", "ph", "cgi", "fcgi", "psgi", "al", "perl", "t", "p6m", "p6l", "nqp,6pl", "6pm",
@@ -29,7 +33,7 @@ public abstract class OSAUtils {
     public static final String DEFAULT_ARCHIVE_INCLUDES = "**/.*jar,**/*.war,**/*.ear,**/*.sca,**/*.gem,**/*.whl,**/*.egg,**/*.tar,**/*.tar.gz,**/*.tgz,**/*.zip,**/*.rar";
 
 
-    public static void writeToOsaListToFile(File dir, String osaDependenciesJson, Logger log) {
+    public static void writeToOsaListToFile(File dir, String osaDependenciesJson) {
         try {
             File file = new File(dir, "OSADependencies.json");
             FileUtils.writeStringToFile(file, osaDependenciesJson, Charset.defaultCharset());
@@ -44,12 +48,12 @@ public abstract class OSAUtils {
         return String.format(url + "/CxWebClient/SPA/#/viewer/project/%s", projectId);
     }
 
-    public static Properties generateOSAScanConfiguration(String folderExclusions, String filterPatterns, String archiveIncludes, String sourceDir, boolean installBeforeScan, String osaScanDepth, Logger log) {
+    public static Properties generateOSAScanConfiguration(String folderExclusions, String filterPatterns, String archiveIncludes, String sourceDir, boolean installBeforeScan, String osaScanDepth) {
         Properties ret = new Properties();
         filterPatterns = StringUtils.defaultString(filterPatterns);
         archiveIncludes = StringUtils.defaultString(archiveIncludes);
 
-        Map<String, List<String>> stringListMap = ShragaUtils.generateIncludesExcludesPatternLists(folderExclusions, filterPatterns, log);
+        Map<String, List<String>> stringListMap = ShragaUtils.generateIncludesExcludesPatternLists(folderExclusions, filterPatterns);
 
         List<String> inclusions = stringListMap.get(ShragaUtils.INCLUDES_LIST);
         List<String> exclusions = stringListMap.get(ShragaUtils.EXCLUDES_LIST);
@@ -134,7 +138,7 @@ public abstract class OSAUtils {
         return inputFiles;
     }
 
-    public static void printOSAResultsToConsole(OSAResults osaResults, boolean enableViolations, Logger log) {
+    public static void printOSAResultsToConsole(OSAResults osaResults, boolean enableViolations) {
         OSASummaryResults osaSummaryResults = osaResults.getResults();
         log.info("----------------------------Checkmarx Scan Results(CxOSA):-------------------------------");
         log.info("");
@@ -180,7 +184,7 @@ public abstract class OSAUtils {
         return workDirectory;
     }
 
-    public static void writeJsonToFile(String name, Object jsonObj, File workDirectory, Boolean cliOsaGenerateJsonReport, Logger log) {
+    public static void writeJsonToFile(String name, Object jsonObj, File workDirectory, Boolean cliOsaGenerateJsonReport) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObj);

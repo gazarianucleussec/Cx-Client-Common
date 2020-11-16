@@ -21,7 +21,7 @@ public class GetTeamListTest extends CommonClientTest {
         CxScanConfig config = initConfig();
         config.setSastEnabled(true);
         try {
-            CxClientDelegator client = new CxClientDelegator(config, log);
+            CxClientDelegator client = new CxClientDelegator(config);
             CxSASTClient sastClient =  client.getSastClient();
             sastClient.login("9.0");
             List<Team> teams = sastClient.getTeamList();

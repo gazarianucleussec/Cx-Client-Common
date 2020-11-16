@@ -5,20 +5,23 @@ import com.cx.restclient.osa.dto.ClientType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-@Slf4j
 public class ClientTypeResolver {
+
+    public static final Logger log = LoggerFactory.getLogger(ClientTypeResolver.class);
+
     private static final String WELL_KNOWN_CONFIG_PATH = "identity/.well-known/openid-configuration";
     private static final String SCOPES_JSON_PROP = "scopes_supported";
 

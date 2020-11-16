@@ -1,17 +1,18 @@
 package com.cx.restclient.common.summary;
 
+import com.cx.restclient.ast.dto.sca.AstScaResults;
 import com.cx.restclient.configuration.CxScanConfig;
 import com.cx.restclient.cxArm.dto.Policy;
-
 import com.cx.restclient.dto.scansummary.ScanSummary;
 import com.cx.restclient.osa.dto.OSAResults;
 import com.cx.restclient.sast.dto.SASTResults;
-import com.cx.restclient.ast.dto.sca.AstScaResults;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.Version;
 import org.apache.commons.collections.CollectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -20,6 +21,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public abstract class SummaryUtils {
+
+    public static final Logger log = LoggerFactory.getLogger(SummaryUtils.class);
+
     private SummaryUtils() {
     }
 

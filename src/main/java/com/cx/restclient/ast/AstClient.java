@@ -20,6 +20,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -32,12 +33,13 @@ import java.util.Optional;
 
 public abstract class AstClient {
 
+    public static final Logger log = LoggerFactory.getLogger(AstClient.class);
+
     private static final String LOCATION_HEADER = "Location";
     private static final String CREDENTIAL_TYPE_PASSWORD = "password";
     protected static final String ENCODING = StandardCharsets.UTF_8.name();
 
     protected final CxScanConfig config;
-    protected final Logger log;
 
     protected CxHttpClient httpClient;
 
@@ -48,10 +50,9 @@ public abstract class AstClient {
     public static final String CREATE_SCAN = properties.get("ast.createScan");
     public static final String GET_UPLOAD_URL = properties.get("ast.getUploadUrl");
 
-    public AstClient(CxScanConfig config, Logger log) {
-        validate(config, log);
+    public AstClient(CxScanConfig config) {
+        validate(config);
         this.config = config;
-        this.log = log;
     }
 
     protected abstract String getScannerDisplayName();
@@ -72,15 +73,14 @@ public abstract class AstClient {
                 false,      // AST clients don't support SSO.
                 null,
                 config.isProxy(),
-                config.getProxyConfig(),
-                log);
+                config.getProxyConfig());
         //initializing Team Path to prevent null pointer in login when called from automation
         client.setTeamPathHeader("");
 
         return client;
     }
 
-    private void validate(CxScanConfig config, Logger log) {
+    private void validate(CxScanConfig config) {
         if (config == null && log == null) {
             throw new CxClientException("Both scan config and log must be provided.");
         }

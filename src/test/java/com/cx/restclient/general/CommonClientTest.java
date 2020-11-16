@@ -10,14 +10,13 @@ import com.cx.restclient.dto.ScannerType;
 import com.cx.restclient.exception.CxClientException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 
 @Slf4j
 public abstract class CommonClientTest {
+
     private static final String MAIN_PROPERTIES_FILE = "config.properties";
     public static final String OVERRIDE_FILE = "config-secrets.properties";
 
@@ -82,15 +81,15 @@ public abstract class CommonClientTest {
     }
 
     protected ScanResults runScan(CxScanConfig config) throws MalformedURLException, CxClientException {
-        CxClientDelegator client = new CxClientDelegator(config, log);
+        CxClientDelegator client = new CxClientDelegator(config);
         try {
             client.init();
             log.info("Initiate scan for the following scanners: " + config.getScannerTypes());
             client.initiateScan();
             log.info("Waiting for results of " + config.getScannerTypes());
-            ScanResults results =  client.waitForScanResults();
+            ScanResults results = client.waitForScanResults();
             Assert.assertNotNull(results);
-            log.info("Results retrieved" );
+            log.info("Results retrieved");
             return results;
         } catch (Exception e) {
             failOnException(e);

@@ -41,6 +41,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,6 +59,9 @@ import static com.cx.restclient.sast.utils.SASTParam.TEMP_FILE_NAME_TO_ZIP;
  * SCA - Software Composition Analysis - is the successor of OSA.
  */
 public class AstScaClient extends AstClient implements Scanner {
+
+    public static final Logger log = LoggerFactory.getLogger(AstScaClient.class);
+
     private static final String RISK_MANAGEMENT_API = properties.get("astSca.riskManagementApi");
     private static final String PROJECTS = RISK_MANAGEMENT_API + properties.get("astSca.projects");
     private static final String SUMMARY_REPORT = RISK_MANAGEMENT_API + properties.get("astSca.summaryReport");
@@ -91,15 +95,15 @@ public class AstScaClient extends AstClient implements Scanner {
     private CxSCAResolvingConfiguration resolvingConfiguration;
     private static final String FINGERPRINT_FILE_NAME = ".cxsca.sig";
 
-    public AstScaClient(CxScanConfig config, Logger log) {
-        super(config, log);
+    public AstScaClient(CxScanConfig config) {
+        super(config);
 
         this.astScaConfig = config.getAstScaConfig();
         validate(astScaConfig);
 
         httpClient = createHttpClient(astScaConfig.getApiUrl());
         this.resolvingConfiguration = null;
-        fingerprintCollector = new FingerprintCollector(log);
+        fingerprintCollector = new FingerprintCollector();
         // Pass tenant name in a custom header. This will allow to get token from on-premise access control server
         // and then use this token for SCA authentication in cloud.
         httpClient.addCustomHeader(TENANT_HEADER_NAME, config.getAstScaConfig().getTenant());
@@ -196,9 +200,9 @@ public class AstScaClient extends AstClient implements Scanner {
             waitForScanToFinish(scanId);
             scaResults = tryGetScanResults().orElseThrow(() -> new CxClientException("Unable to get scan results: scan not found."));
             if (config.getScaJsonReport() != null) {
-                OSAUtils.writeJsonToFile(REPORT_SCA_FINDINGS + JSON_EXTENSION, scaResults.getFindings(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
-                OSAUtils.writeJsonToFile(REPORT_SCA_PACKAGES + JSON_EXTENSION, scaResults.getPackages(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
-                OSAUtils.writeJsonToFile(REPORT_SCA_SUMMARY + JSON_EXTENSION, scaResults.getSummary(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
+                OSAUtils.writeJsonToFile(REPORT_SCA_FINDINGS + JSON_EXTENSION, scaResults.getFindings(), config.getReportsDir(), config.getOsaGenerateJsonReport());
+                OSAUtils.writeJsonToFile(REPORT_SCA_PACKAGES + JSON_EXTENSION, scaResults.getPackages(), config.getReportsDir(), config.getOsaGenerateJsonReport());
+                OSAUtils.writeJsonToFile(REPORT_SCA_SUMMARY + JSON_EXTENSION, scaResults.getSummary(), config.getReportsDir(), config.getOsaGenerateJsonReport());
             }
         } catch (CxClientException e) {
             log.error(e.getMessage());
@@ -250,9 +254,9 @@ public class AstScaClient extends AstClient implements Scanner {
     protected HttpResponse submitAllSourcesFromLocalDir(String projectId, String zipFilePath) throws IOException {
         log.info("Using local directory flow.");
 
-        PathFilter filter = new PathFilter(config.getOsaFolderExclusions(), config.getOsaFilterPattern(), log);
+        PathFilter filter = new PathFilter(config.getOsaFolderExclusions(), config.getOsaFilterPattern());
         String sourceDir = config.getEffectiveSourceDirForDependencyScan();
-        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, sourceDir, log);
+        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, sourceDir);
 
         return initiateScanForUpload(projectId, zipFile, zipFilePath);
     }
@@ -262,10 +266,10 @@ public class AstScaClient extends AstClient implements Scanner {
 
         String sourceDir = config.getEffectiveSourceDirForDependencyScan();
 
-        PathFilter userFilter = new PathFilter(config.getOsaFolderExclusions(), config.getOsaFilterPattern(), log);
+        PathFilter userFilter = new PathFilter(config.getOsaFolderExclusions(), config.getOsaFilterPattern());
         Set<String> scannedFileSet = new HashSet<>(Arrays.asList(CxSCAFileSystemUtils.scanAndGetIncludedFiles(sourceDir, userFilter)));
 
-        PathFilter manifestIncludeFilter = new PathFilter(null, getManifestsIncludePattern(), log);
+        PathFilter manifestIncludeFilter = new PathFilter(null, getManifestsIncludePattern());
         if (manifestIncludeFilter.getIncludes().length == 0) {
             throw new CxClientException(String.format("Using manifest only mode requires include filter. Resolving config does not have include patterns defined: %s", getManifestsIncludePattern()));
         }
@@ -277,7 +281,7 @@ public class AstScaClient extends AstClient implements Scanner {
 
         List<String> filesToFingerprint =
                 Arrays.stream(CxSCAFileSystemUtils.scanAndGetIncludedFiles(sourceDir,
-                        new PathFilter(null, getFingerprintsIncludePattern(), log)))
+                        new PathFilter(null, getFingerprintsIncludePattern())))
                         .filter(scannedFileSet::contains).
                         collect(Collectors.toList());
 
@@ -301,7 +305,7 @@ public class AstScaClient extends AstClient implements Scanner {
         log.info("Collecting files to zip archive: {}", tempFile.getAbsolutePath());
         long maxZipSizeBytes = config.getMaxZipSize() != null ? config.getMaxZipSize() * 1024 * 1024 : MAX_ZIP_SIZE_BYTES;
 
-        try (NewCxZipFile zipper = new NewCxZipFile(tempFile, maxZipSizeBytes, log)) {
+        try (NewCxZipFile zipper = new NewCxZipFile(tempFile, maxZipSizeBytes)) {
             zipper.addMultipleFilesToArchive(new File(sourceDir), paths);
             if (zipper.getFileCount() == 0 && fingerprints.getFingerprints().isEmpty()) {
                 throw handleFileDeletion(tempFile);

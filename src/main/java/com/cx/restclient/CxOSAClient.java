@@ -4,7 +4,8 @@ import com.cx.restclient.common.Scanner;
 import com.cx.restclient.common.ShragaUtils;
 import com.cx.restclient.common.Waiter;
 import com.cx.restclient.configuration.CxScanConfig;
-import com.cx.restclient.dto.*;
+import com.cx.restclient.dto.Results;
+import com.cx.restclient.dto.Status;
 import com.cx.restclient.exception.CxClientException;
 import com.cx.restclient.httpClient.CxHttpClient;
 import com.cx.restclient.osa.dto.*;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.whitesource.fs.ComponentScan;
 
 import java.io.IOException;
@@ -35,6 +37,8 @@ import static com.cx.restclient.osa.utils.OSAUtils.writeJsonToFile;
  */
 public class CxOSAClient extends LegacyClient implements Scanner {
 
+    public static final Logger log = LoggerFactory.getLogger(CxOSAClient.class);
+
     private Waiter<OSAScanStatus> osaWaiter;
 
     private String scanId;
@@ -45,8 +49,8 @@ public class CxOSAClient extends LegacyClient implements Scanner {
         return getOSAScanStatus(id);
     }
 
-    public CxOSAClient(CxScanConfig config, Logger log) throws MalformedURLException {
-        super(config, log);
+    public CxOSAClient(CxScanConfig config) throws MalformedURLException {
+        super(config);
         int interval = config.getOsaProgressInterval() != null ? config.getOsaProgressInterval() : 20;
         int retry = config.getConnectionRetries() != null ? config.getConnectionRetries() : 3;
         osaWaiter = new Waiter<OSAScanStatus>("CxOSA scan", interval, retry) {
@@ -136,14 +140,13 @@ public class CxOSAClient extends LegacyClient implements Scanner {
                     config.getOsaArchiveIncludePatterns(),
                     config.getEffectiveSourceDirForDependencyScan(),
                     config.getOsaRunInstall(),
-                    config.getOsaScanDepth(),
-                    log);
+                    config.getOsaScanDepth());
         }
         ObjectMapper mapper = new ObjectMapper();
         log.info("Scanner properties: " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(scannerProperties.toString()));
         ComponentScan componentScan = new ComponentScan(scannerProperties);
         String osaDependenciesJson = componentScan.scan();
-        OSAUtils.writeToOsaListToFile(OSAUtils.getWorkDirectory(config.getReportsDir(), config.getOsaGenerateJsonReport()), osaDependenciesJson, log);
+        OSAUtils.writeToOsaListToFile(OSAUtils.getWorkDirectory(config.getReportsDir(), config.getOsaGenerateJsonReport()), osaDependenciesJson);
         return osaDependenciesJson;
     }
 
@@ -165,7 +168,7 @@ public class CxOSAClient extends LegacyClient implements Scanner {
             log.info("Waiting for OSA scan to finish");
 
             OSAScanStatus osaScanStatus;
-            osaScanStatus = osaWaiter.waitForTaskToFinish(scanId, this.config.getOsaScanTimeoutInMinutes(), log);
+            osaScanStatus = osaWaiter.waitForTaskToFinish(scanId, this.config.getOsaScanTimeoutInMinutes());
             log.info("OSA scan finished successfully. Retrieving OSA scan results");
 
             log.info("Creating OSA reports");
@@ -176,12 +179,12 @@ public class CxOSAClient extends LegacyClient implements Scanner {
                 resolveOSAViolation(osaResults, projectId);
             }
 
-            OSAUtils.printOSAResultsToConsole(osaResults, config.getEnablePolicyViolations(), log);
+            OSAUtils.printOSAResultsToConsole(osaResults, config.getEnablePolicyViolations());
 
             if (config.getReportsDir() != null) {
-                writeJsonToFile(OSA_SUMMARY_NAME, osaResults.getResults(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
-                writeJsonToFile(OSA_LIBRARIES_NAME, osaResults.getOsaLibraries(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
-                writeJsonToFile(OSA_VULNERABILITIES_NAME, osaResults.getOsaVulnerabilities(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
+                writeJsonToFile(OSA_SUMMARY_NAME, osaResults.getResults(), config.getReportsDir(), config.getOsaGenerateJsonReport());
+                writeJsonToFile(OSA_LIBRARIES_NAME, osaResults.getOsaLibraries(), config.getReportsDir(), config.getOsaGenerateJsonReport());
+                writeJsonToFile(OSA_VULNERABILITIES_NAME, osaResults.getOsaVulnerabilities(), config.getReportsDir(), config.getOsaGenerateJsonReport());
             }
         } catch (Exception e) {
             log.error(e.getMessage());

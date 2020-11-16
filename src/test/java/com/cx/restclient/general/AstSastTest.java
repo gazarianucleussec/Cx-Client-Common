@@ -32,7 +32,7 @@ public class AstSastTest extends CommonClientTest {
     public void scan_remotePublicRepo() throws MalformedURLException {
         CxScanConfig config = getScanConfig();
 
-        CxClientDelegator client = new CxClientDelegator(config, log);
+        CxClientDelegator client = new CxClientDelegator(config);
         try {
             client.init();
             ScanResults initialResults = client.initiateScan();

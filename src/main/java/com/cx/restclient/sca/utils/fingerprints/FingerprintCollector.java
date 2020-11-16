@@ -3,6 +3,7 @@ package com.cx.restclient.sca.utils.fingerprints;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,12 +17,12 @@ import java.util.List;
 
 public class FingerprintCollector {
 
+    public static final Logger log = LoggerFactory.getLogger(FingerprintCollector.class);
+
     private static final String DEFAULT_FINGERPRINT_FILENAME = "CxSCAFingerprints.json";
     private final SignatureCalculator sha1SignatureCalculator;
-    private final Logger log;
 
-    public FingerprintCollector(Logger log){
-        this.log = log;
+    public FingerprintCollector(){
         sha1SignatureCalculator = new Sha1SignatureCalculator();
     }
 

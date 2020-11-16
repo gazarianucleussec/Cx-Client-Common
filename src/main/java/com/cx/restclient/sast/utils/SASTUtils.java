@@ -6,6 +6,7 @@ import com.cx.restclient.sast.dto.SASTResults;
 import com.sun.xml.bind.v2.JAXBContextFactory;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -21,6 +22,8 @@ import static com.cx.restclient.common.CxPARAM.CX_REPORT_LOCATION;
  * Created by Galn on 07/02/2018.
  */
 public abstract class SASTUtils {
+
+    public static final Logger log = LoggerFactory.getLogger(SASTUtils.class);
 
     public static CxXMLResults convertToXMLResult(byte[] cxReport) throws CxClientException {
         CxXMLResults reportObj = null;
@@ -39,7 +42,7 @@ public abstract class SASTUtils {
         return reportObj;
     }
 
-    public static void printSASTResultsToConsole(SASTResults sastResults, boolean enableViolations, Logger log) {
+    public static void printSASTResultsToConsole(SASTResults sastResults, boolean enableViolations) {
 
         String highNew = sastResults.getNewHigh() > 0 ? " (" + sastResults.getNewHigh() + " new)" : "";
         String mediumNew = sastResults.getNewMedium() > 0 ? " (" + sastResults.getNewMedium() + " new)" : "";
@@ -57,7 +60,7 @@ public abstract class SASTUtils {
     }
 
     //PDF Report
-    public static String writePDFReport(byte[] scanReport, File workspace, String pdfFileName, Logger log) {
+    public static String writePDFReport(byte[] scanReport, File workspace, String pdfFileName) {
         try {
             FileUtils.writeByteArrayToFile(new File(workspace + CX_REPORT_LOCATION, pdfFileName), scanReport);
             log.info("PDF report location: " + workspace + CX_REPORT_LOCATION + File.separator + pdfFileName);
@@ -69,7 +72,7 @@ public abstract class SASTUtils {
     }
 
     // CLI Report/s
-    public static void writeReport(byte[] scanReport, String reportName, Logger log) {
+    public static void writeReport(byte[] scanReport, String reportName) {
         try {
             File reportFile = new File(reportName);
             if (!reportFile.isAbsolute()) {

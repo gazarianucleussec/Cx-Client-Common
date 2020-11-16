@@ -23,7 +23,6 @@ public class SASTParam {
     public static final String SAST_EXCLUDE_FOLDERS_FILES_PATTERNS = "projects/%s/sourceCode/excludeSettings";
 
 
-
     //Once it has results
     public static final String SAST_SCAN_RESULTS_STATISTICS = "sast/scans/{scanId}/resultsStatistics";
     public static final String SAST_CREATE_REPORT = "reports/sastScan/"; //Create new report (get ID)

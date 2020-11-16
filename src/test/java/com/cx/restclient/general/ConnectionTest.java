@@ -22,7 +22,7 @@ public class ConnectionTest extends CommonClientTest {
     public void ssoConnectionTest() {
         CxScanConfig config = initConfig();
         try {
-            CxClientDelegator client = new CxClientDelegator(config, log);
+            CxClientDelegator client = new CxClientDelegator(config);
             client.init();
         } catch (IOException | CxClientException e) {
             e.printStackTrace();
@@ -40,7 +40,7 @@ public class ConnectionTest extends CommonClientTest {
         config.setAstScaConfig(scaConfig);
         config.addScannerType(ScannerType.AST_SCA);
         try {
-            CxClientDelegator delegator = new CxClientDelegator(config, log);
+            CxClientDelegator delegator = new CxClientDelegator(config);
             delegator.getScaClient().testScaConnection();
         } catch (CxClientException | MalformedURLException e) {
             failOnException(e);

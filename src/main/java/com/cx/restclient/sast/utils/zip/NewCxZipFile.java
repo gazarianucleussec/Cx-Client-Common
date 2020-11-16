@@ -6,6 +6,7 @@ import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.zip.ZipEntry;
 import org.apache.tools.zip.ZipOutputStream;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.List;
@@ -13,9 +14,10 @@ import java.util.List;
 
 public class NewCxZipFile implements Closeable {
 
+    public static final Logger log = LoggerFactory.getLogger(NewCxZipFile.class);
+
     private static final double AVERAGE_ZIP_COMPRESSION_RATIO = 4.0D;
 
-    private final Logger log;
     private final long maxSize;
     private final ZipListener listener;
     private final OutputStream outputStream;
@@ -23,8 +25,7 @@ public class NewCxZipFile implements Closeable {
     private long fileCount;
     private long compressedSize;
 
-    public NewCxZipFile(File zipFile, long maxZipSizeInBytes, Logger log) throws IOException {
-        this.log = log;
+    public NewCxZipFile(File zipFile, long maxZipSizeInBytes) throws IOException {
         this.maxSize = maxZipSizeInBytes;
         this.fileCount = 0;
         this.compressedSize = 0;

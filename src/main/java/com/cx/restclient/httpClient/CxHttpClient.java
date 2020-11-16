@@ -49,6 +49,7 @@ import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.ssl.TrustStrategy;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
@@ -77,6 +78,8 @@ import static com.cx.restclient.httpClient.utils.HttpClientHelper.*;
  */
 public class CxHttpClient implements Closeable {
 
+    public static final Logger log = LoggerFactory.getLogger(CxHttpClient.class);
+
     private static final String HTTPS = "https";
 
     private static final String LOGIN_FAILED_MSG = "Fail to login with windows authentication: ";
@@ -91,7 +94,6 @@ public class CxHttpClient implements Closeable {
 
     private HttpClient apacheClient;
 
-    private Logger log;
     private TokenLoginResponse token;
     private String rootUri;
     private final String refreshToken;
@@ -105,15 +107,14 @@ public class CxHttpClient implements Closeable {
 
 
     public CxHttpClient(String rootUri, String origin, boolean disableSSLValidation, boolean isSSO, String refreshToken,
-                        boolean isProxy, @Nullable ProxyConfig proxyConfig, Logger log) throws CxClientException {
-        this.log = log;
+                        boolean isProxy, @Nullable ProxyConfig proxyConfig) throws CxClientException {
         this.rootUri = rootUri;
         this.refreshToken = refreshToken;
         this.cxOrigin = origin;
         this.useSSo = isSSO;
         //create httpclient
         cb.setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build());
-        setSSLTls("TLSv1.2", log);
+        setSSLTls("TLSv1.2");
         SSLContextBuilder builder = new SSLContextBuilder();
         SSLConnectionSocketFactory sslConnectionSocketFactory = null;
         Registry<ConnectionSocketFactory> registry;
@@ -139,7 +140,7 @@ public class CxHttpClient implements Closeable {
         cb.setConnectionManagerShared(true);
 
         if (isProxy) {
-            if (!setCustomProxy(cb, proxyConfig, log)) {
+            if (!setCustomProxy(cb, proxyConfig)) {
                 cb.useSystemProperties();
             }
         }
@@ -156,15 +157,14 @@ public class CxHttpClient implements Closeable {
 
     @Deprecated
     public CxHttpClient(String rootUri, String origin, boolean disableSSLValidation, boolean isSSO, String refreshToken,
-                        @Nullable ProxyConfig proxyConfig, Logger log) throws CxClientException {
-        this.log = log;
+                        @Nullable ProxyConfig proxyConfig) throws CxClientException {
         this.rootUri = rootUri;
         this.refreshToken = refreshToken;
         this.cxOrigin = origin;
         this.useSSo = isSSO;
         //create httpclient
         cb.setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build());
-        setSSLTls("TLSv1.2", log);
+        setSSLTls("TLSv1.2");
         SSLContextBuilder builder = new SSLContextBuilder();
         SSLConnectionSocketFactory sslConnectionSocketFactory = null;
         Registry<ConnectionSocketFactory> registry;
@@ -189,7 +189,7 @@ public class CxHttpClient implements Closeable {
         }
         cb.setConnectionManagerShared(true);
 
-        setCustomProxy(cb, proxyConfig, log);
+        setCustomProxy(cb, proxyConfig);
 
         if (Boolean.TRUE.equals(useSSo)) {
             cb.setDefaultCredentialsProvider(new WindowsCredentialsProvider(new SystemDefaultCredentialsProvider()));
@@ -202,7 +202,7 @@ public class CxHttpClient implements Closeable {
         apacheClient = cb.build();
     }
 
-    private static boolean setCustomProxy(HttpClientBuilder cb, ProxyConfig proxyConfig, Logger logi) {
+    private static boolean setCustomProxy(HttpClientBuilder cb, ProxyConfig proxyConfig) {
         if (proxyConfig == null ||
                 StringUtils.isEmpty(proxyConfig.getHost()) ||
                 proxyConfig.getPort() == 0) {
@@ -219,7 +219,7 @@ public class CxHttpClient implements Closeable {
             cb.setDefaultCredentialsProvider(credsProvider);
         }
 
-        logi.info("Setting proxy for Checkmarx http client");
+        log.info("Setting proxy for Checkmarx http client");
         cb.setProxy(proxy);
         cb.setRoutePlanner(new DefaultProxyRoutePlanner(proxy));
         cb.setProxyAuthenticationStrategy(new ProxyAuthenticationStrategy());
@@ -579,7 +579,7 @@ public class CxHttpClient implements Closeable {
         HttpClientUtils.closeQuietly(apacheClient);
     }
 
-    private void setSSLTls(String protocol, Logger log) {
+    private void setSSLTls(String protocol) {
         try {
             final SSLContext sslContext = SSLContext.getInstance(protocol);
             sslContext.init(null, null, null);
@@ -628,7 +628,6 @@ public class CxHttpClient implements Closeable {
                 ex.getMessage());
 
         log.warn(message);
-
         log.info("Possible reason: access token has expired. Trying to request a new token...");
     }
 

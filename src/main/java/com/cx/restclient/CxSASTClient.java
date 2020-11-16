@@ -21,6 +21,7 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.json.JSONObject;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -43,6 +44,8 @@ import static com.cx.restclient.sast.utils.SASTUtils.*;
  * Created by Galn on 05/02/2018.
  */
 public class CxSASTClient extends LegacyClient implements Scanner {
+
+    public static final Logger log = LoggerFactory.getLogger(CxSASTClient.class);
 
     public static final String JENKINS = "jenkins";
 
@@ -159,8 +162,8 @@ public class CxSASTClient extends LegacyClient implements Scanner {
     };
 
 
-    CxSASTClient(CxScanConfig config, Logger log) throws MalformedURLException {
-        super(config, log);
+    CxSASTClient(CxScanConfig config) throws MalformedURLException {
+        super(config);
 
         int interval = config.getProgressInterval() != null ? config.getProgressInterval() : 20;
         int retry = config.getConnectionRetries() != null ? config.getConnectionRetries() : 3;
@@ -221,8 +224,8 @@ public class CxSASTClient extends LegacyClient implements Scanner {
     private long createLocalSASTScan(long projectId) throws IOException {
         configureScanSettings(projectId);
         //prepare sources for scan
-        PathFilter filter = new PathFilter(config.getSastFolderExclusions(), config.getSastFilterPattern(), log);
-        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir(), log);
+        PathFilter filter = new PathFilter(config.getSastFolderExclusions(), config.getSastFilterPattern());
+        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir());
         uploadZipFile(zipFile, projectId);
 
         return createScan(projectId);
@@ -310,7 +313,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
             log.info("------------------------------------Get CxSAST Results:-----------------------------------");
             //wait for SAST scan to finish
             log.info("Waiting for CxSAST scan to finish.");
-            sastWaiter.waitForTaskToFinish(Long.toString(scanId), config.getSastScanTimeoutInMinutes() * 60, log);
+            sastWaiter.waitForTaskToFinish(Long.toString(scanId), config.getSastScanTimeoutInMinutes() * 60);
             log.info("Retrieving SAST scan results");
 
             //retrieve SAST scan results
@@ -318,7 +321,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
             if (config.getEnablePolicyViolations()) {
                 resolveSASTViolation(sastResults, projectId);
             }
-            SASTUtils.printSASTResultsToConsole(sastResults, config.getEnablePolicyViolations(), log);
+            SASTUtils.printSASTResultsToConsole(sastResults, config.getEnablePolicyViolations());
 
             //PDF report
             if (config.getGeneratePDFReport()) {
@@ -328,7 +331,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
                 if (config.getReportsDir() != null) {
                     String now = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(new Date());
                     String pdfFileName = PDF_REPORT_NAME + "_" + now + ".pdf";
-                    pdfFileName = writePDFReport(pdfReport, config.getReportsDir(), pdfFileName, log);
+                    pdfFileName = writePDFReport(pdfReport, config.getReportsDir(), pdfFileName);
                     sastResults.setPdfFileName(pdfFileName);
                 }
             }
@@ -338,7 +341,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
                     if (report != null) {
                         log.info("Generating " + report.getKey().value() + " report");
                         byte[] scanReport = getScanReport(sastResults.getScanId(), report.getKey(), CONTENT_TYPE_APPLICATION_PDF_V1);
-                        writeReport(scanReport, report.getValue(), log);
+                        writeReport(scanReport, report.getValue());
                         if (report.getKey().value().equals("PDF")) {
                             sastResults.setPDFReport(scanReport);
                             sastResults.setPdfFileName(report.getValue());
@@ -356,7 +359,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
 
     private void resolveSASTViolation(SASTResults sastResults, long projectId) {
         try {
-            cxARMWaiter.waitForTaskToFinish(Long.toString(projectId), cxARMTimeoutSec, log);
+            cxARMWaiter.waitForTaskToFinish(Long.toString(projectId), cxARMTimeoutSec);
             getProjectViolatedPolicies(httpClient, config.getCxARMUrl(), projectId, SAST.value())
                     .forEach(sastResults::addPolicy);
         } catch (Exception ex) {
@@ -506,7 +509,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         CreateReportRequest reportRequest = new CreateReportRequest(scanId, reportType.name());
         CreateReportResponse createReportResponse = createScanReport(reportRequest);
         int reportId = createReportResponse.getReportId();
-        reportWaiter.waitForTaskToFinish(Long.toString(reportId), reportTimeoutSec, log);
+        reportWaiter.waitForTaskToFinish(Long.toString(reportId), reportTimeoutSec);
 
         return getReport(reportId, contentType);
     }

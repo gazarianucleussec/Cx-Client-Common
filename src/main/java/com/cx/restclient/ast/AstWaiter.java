@@ -1,12 +1,12 @@
 package com.cx.restclient.ast;
 
+import com.cx.restclient.ast.dto.common.ScanInfoResponse;
+import com.cx.restclient.ast.dto.common.ScanStatus;
 import com.cx.restclient.common.ShragaUtils;
 import com.cx.restclient.configuration.CxScanConfig;
 import com.cx.restclient.exception.CxClientException;
 import com.cx.restclient.httpClient.CxHttpClient;
 import com.cx.restclient.httpClient.utils.ContentType;
-import com.cx.restclient.ast.dto.common.ScanInfoResponse;
-import com.cx.restclient.ast.dto.common.ScanStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.EnumUtils;
@@ -14,6 +14,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -23,8 +25,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.cx.restclient.ast.AstClient.ENCODING;
 
 @RequiredArgsConstructor
-@Slf4j
 public class AstWaiter {
+
+    public static final Logger log = LoggerFactory.getLogger(AstWaiter.class);
+
     private final CxHttpClient httpClient;
     private final CxScanConfig config;
     private final String scannerDisplayName;

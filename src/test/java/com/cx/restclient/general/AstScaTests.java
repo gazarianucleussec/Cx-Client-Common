@@ -109,7 +109,7 @@ public class AstScaTests extends ScaTestsBase {
     private ScanResults getLatestResults(CxScanConfig config) {
         CxClientDelegator client = null;
         try {
-            client = new CxClientDelegator(config, log);
+            client = new CxClientDelegator(config);
         } catch (MalformedURLException e) {
             failOnException(e);
         }
