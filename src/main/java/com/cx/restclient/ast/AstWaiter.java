@@ -8,7 +8,7 @@ import com.cx.restclient.httpClient.utils.ContentType;
 import com.cx.restclient.ast.dto.common.ScanInfoResponse;
 import com.cx.restclient.ast.dto.common.ScanStatus;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.http.HttpStatus;
@@ -23,12 +23,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.cx.restclient.ast.AstClient.ENCODING;
 
 @RequiredArgsConstructor
-@Slf4j
 public class AstWaiter {
     private final CxHttpClient httpClient;
     private final CxScanConfig config;
     private final String scannerDisplayName;
     private long startTimestampSec;
+    private final Logger log;
 
     public void waitForScanToFinish(String scanId) {
         startTimestampSec = System.currentTimeMillis() / 1000;
