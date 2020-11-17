@@ -59,6 +59,9 @@ pipeline {
                         env.cxCommonVersion = "${BUILD_TAG}"
                     }
                     workspace = pwd()
+                    if (env.automationBranch == null) {
+                        env.automationBranch = automationBranch
+                    }
                     sh 'printenv'
                 }
             }
@@ -105,7 +108,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            sh "docker run --rm --name sonar-${BUILD_TAG} -v /root/.m2:/root/.m2 -v ${workspace}:/usr/src/cx-common -w /usr/src/cx-common maven:3.6.1-jdk-8-alpine mvn sonar:sonar -Dcxcommon.version=${env.cxCommonVersion}"
+                            sh "docker run --rm --name sonar-${BUILD_TAG} -v /root/.m2:/root/.m2 -v ${workspace}:/usr/src/cx-common -w /usr/src/cx-common maven:3.6.1-jdk-8-alpine mvn sonar:sonar -Dcxcommon.version=${env.cxCommonVersion} -Dsonar.login=${SONAR_CLOUD_TOKEN}"
                             def sonarTaskUrl = sh (returnStdout: true, script: "awk '/./{line=\$0} END{print line}' ./target/sonar/report-task.txt | cut -d '=' -f '2,3'").trim()
                             def sonarTaskStatus = sh (returnStdout: true, script: "curl -s -u ${SONAR_CLOUD_TOKEN}: ${sonarTaskUrl} | jq -r '.task.status'").trim()
                             while (sonarTaskStatus == 'PENDING' || sonarTaskStatus == 'IN_PROGRESS') {
@@ -179,7 +182,7 @@ pipeline {
                         stage('Pull Automation Code') {
                             steps {
                                 dir("${workspace}/8.9/Checkmarx-System-Test") {
-                                    git branch: automationBranch, credentialsId: '15f8e7b7-6ce7-44c0-b151-84f99ffa7aed', poll: false, url: 'http://tfs2013:8080/tfs/DefaultCollection/Automation/_git/Checkmarx-System-Test'
+                                    git branch: "${env.automationBranch}", credentialsId: '15f8e7b7-6ce7-44c0-b151-84f99ffa7aed', poll: false, url: 'http://tfs2013:8080/tfs/DefaultCollection/Automation/_git/Checkmarx-System-Test'
                                     sh "cp -r ../../../env ."
                                     sh "sed -e 's/<CxSastIpAddress>/${ipAddress89}/g' -i ./env/topology.xml"
                                 }
@@ -253,7 +256,7 @@ pipeline {
                         stage('Pull Automation Code') {
                             steps {
                                 dir("${workspace}/9.0/Checkmarx-System-Test") {
-                                    git branch: automationBranch, credentialsId: '15f8e7b7-6ce7-44c0-b151-84f99ffa7aed', poll: false, url: 'http://tfs2013:8080/tfs/DefaultCollection/Automation/_git/Checkmarx-System-Test'
+                                    git branch: "${env.automationBranch}", credentialsId: '15f8e7b7-6ce7-44c0-b151-84f99ffa7aed', poll: false, url: 'http://tfs2013:8080/tfs/DefaultCollection/Automation/_git/Checkmarx-System-Test'
                                     sh "cp -r ../../../env ."
                                     sh "sed -e 's/<CxSastIpAddress>/${ipAddress90}/g' -i ./env/topology.xml"
                                 }
@@ -327,7 +330,7 @@ pipeline {
                         stage('Pull Automation Code') {
                             steps {
                                 dir("${workspace}/9.2/Checkmarx-System-Test") {
-                                    git branch: automationBranch, credentialsId: '15f8e7b7-6ce7-44c0-b151-84f99ffa7aed', poll: false, url: 'http://tfs2013:8080/tfs/DefaultCollection/Automation/_git/Checkmarx-System-Test'
+                                    git branch: "${env.automationBranch}", credentialsId: '15f8e7b7-6ce7-44c0-b151-84f99ffa7aed', poll: false, url: 'http://tfs2013:8080/tfs/DefaultCollection/Automation/_git/Checkmarx-System-Test'
                                     sh "cp -r ../../../env ."
                                     sh "sed -e 's/<CxSastIpAddress>/${ipAddress92}/g' -i ./env/topology.xml"
                                 }
@@ -401,7 +404,7 @@ pipeline {
                         stage('Pull Automation Code') {
                             steps {
                                 dir("${workspace}/9.3/Checkmarx-System-Test") {
-                                    git branch: automationBranch, credentialsId: '15f8e7b7-6ce7-44c0-b151-84f99ffa7aed', poll: false, url: 'http://tfs2013:8080/tfs/DefaultCollection/Automation/_git/Checkmarx-System-Test'
+                                    git branch: "${env.automationBranch}", credentialsId: '15f8e7b7-6ce7-44c0-b151-84f99ffa7aed', poll: false, url: 'http://tfs2013:8080/tfs/DefaultCollection/Automation/_git/Checkmarx-System-Test'
                                     sh "cp -r ../../../env ."
                                     sh "sed -e 's/<CxSastIpAddress>/${ipAddress93}/g' -i ./env/topology.xml"
                                 }
@@ -492,6 +495,22 @@ pipeline {
                         script {
                             //sh "docker run --rm --name publish-${BUILD_TAG} -v /root/.m2:/root/.m2 -v ${workspace}:/usr/src/cx-common -v /root/.gnupg:/root/.gnupg -w /usr/src/cx-common maven:3.6.1-jdk-8 mvn deploy -P release"
                             sh "mvn deploy -P release -DskipTests -Dcxcommon.version=${env.cxCommonVersion}"
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                env.PIPELINE_STATUS = "Failure"
+                                env.STAGE_NAME_FAILED="${STAGE_NAME}"
+                            }
+                        }
+                    }
+                }
+
+                stage('cx-artifactory') {
+                    steps {
+                        script {
+                            kit.Upload_To_Artifactory("./target/cx-client-common-${env.cxCommonVersion}.jar", "libs-release-local/com/checkmarx/cx-client-common/${env.cxCommonVersion}/cx-client-common-${env.cxCommonVersion}.jar")
                         }
                     }
                     post {

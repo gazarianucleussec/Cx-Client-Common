@@ -9,7 +9,6 @@ import com.cx.restclient.exception.CxClientException;
 import com.cx.restclient.exception.CxHTTPClientException;
 import com.cx.restclient.httpClient.CxHttpClient;
 import com.cx.restclient.osa.dto.ClientType;
-
 import com.cx.restclient.sast.dto.CreateProjectRequest;
 import com.cx.restclient.sast.dto.CxNameObj;
 import com.cx.restclient.sast.dto.Preset;
@@ -36,14 +35,14 @@ import static com.cx.restclient.sast.utils.SASTParam.*;
  */
 public abstract class LegacyClient {
 
-    private static final String DEFAULT_AUTH_API_PATH = "CxRestApi/auth/";
+    private static final String DEFAULT_AUTH_API_PATH = "CxRestApi/auth/" + AUTHENTICATION;
     protected CxHttpClient httpClient;
     protected CxScanConfig config;
     protected Logger log;
     private String teamPath;
     protected long projectId;
+    private State state = State.SUCCESS;
 
-    
     public LegacyClient(CxScanConfig config, Logger log) throws MalformedURLException {
         this.config = config;
         this.log = log;
@@ -55,15 +54,15 @@ public abstract class LegacyClient {
         this.config = config;
     }
 
-    public void close(){
-        if(httpClient != null) {
+    public void close() {
+        if (httpClient != null) {
             httpClient.close();
         }
     }
 
     public long resolveProjectId() throws IOException {
         List<Project> projects = getProjectByName(config.getProjectName(), config.getTeamId(), teamPath);
-        
+
         if (projects == null || projects.isEmpty()) { // Project is new
             if (config.getDenyProject()) {
                 throw new CxClientException(DENY_NEW_PROJECT_ERROR.replace("{projectName}", config.getProjectName()));
@@ -75,7 +74,7 @@ public abstract class LegacyClient {
         } else {
             projectId = projects.get(0).getId();
         }
-        
+
         return projectId;
     }
 
@@ -85,14 +84,14 @@ public abstract class LegacyClient {
         List<Team> teamList = populateTeamList();
         //If there is no chosen teamPath, just add first one from the teams list as default
         if (StringUtils.isEmpty(teamPath) && teamList != null && !teamList.isEmpty()) {
-            teamPath =  teamList.get(0).getFullName();
+            teamPath = teamList.get(0).getFullName();
         }
         httpClient.setTeamPathHeader(teamPath);
-        log.debug(" setTeamPathHeader " + teamPath);
+        log.debug(String.format(" setTeamPathHeader %s", teamPath));
         return teamPath;
     }
-    
-    public  List<Team> getTeamList() throws IOException, CxClientException {
+
+    public List<Team> getTeamList() throws IOException, CxClientException {
 
         return populateTeamList();
     }
@@ -113,14 +112,14 @@ public abstract class LegacyClient {
         getHttpClient().revokeToken(token);
     }
 
-    
+
     private Project createNewProject(CreateProjectRequest request, String teamPath) throws IOException {
         String json = convertToJson(request);
         httpClient.setTeamPathHeader(teamPath);
         StringEntity entity = new StringEntity(json, StandardCharsets.UTF_8);
         return httpClient.postRequest(CREATE_PROJECT, CONTENT_TYPE_APPLICATION_JSON_V1, entity, Project.class, 201, "create new project: " + request.getName());
     }
-    
+
     private List<Project> getProjectByName(String projectName, String teamId, String teamPath) throws IOException, CxClientException {
         projectName = URLEncoder.encode(projectName, "UTF-8");
         String projectNamePath = SAST_GET_PROJECT.replace("{name}", projectName).replace("{teamId}", teamId);
@@ -137,7 +136,7 @@ public abstract class LegacyClient {
     }
 
     private void initHttpClient(CxScanConfig config, Logger log) throws MalformedURLException {
-        
+
         if (!org.apache.commons.lang3.StringUtils.isEmpty(config.getUrl())) {
             httpClient = new CxHttpClient(
                     UrlUtils.parseURLToString(config.getUrl(), "CxRestAPI/"),
@@ -145,13 +144,14 @@ public abstract class LegacyClient {
                     config.isDisableCertificateValidation(),
                     config.isUseSSOLogin(),
                     config.getRefreshToken(),
+                    config.isProxy(),
                     config.getProxyConfig(),
-                    log);
+                    log,
+                    config.getNTLM());
         }
     }
 
-
-    public void init() throws CxClientException {
+    public void initiate() throws CxClientException {
         try {
             if (config.isSastOrOSAEnabled()) {
                 String version = getCxVersion();
@@ -167,15 +167,13 @@ public abstract class LegacyClient {
                 resolveEngineConfiguration();
                 resolveProjectId();
             }
-        }catch(IOException e){
-            throw new CxClientException (e.getMessage());
+        } catch (Exception e) {
+            throw new CxClientException(e);
         }
     }
-    
-    
-    
+
     public String getCxVersion() throws IOException, CxClientException {
-        String version = "";
+        String version;
         try {
             config.setCxVersion(httpClient.getRequest(CX_VERSION, CONTENT_TYPE_APPLICATION_JSON_V1, CxVersion.class, 200, "cx Version", false));
             String hotfix = "";
@@ -205,7 +203,7 @@ public abstract class LegacyClient {
         // perform login to server
         log.info("Logging into the Checkmarx service.");
 
-        if(config.getToken() != null){
+        if (config.getToken() != null) {
             httpClient.setToken(config.getToken());
             return;
         }
@@ -216,16 +214,16 @@ public abstract class LegacyClient {
     }
 
     public LoginSettings getDefaultLoginSettings() throws MalformedURLException {
-        LoginSettings result = new LoginSettings();
-
         String baseUrl = UrlUtils.parseURLToString(config.getUrl(), DEFAULT_AUTH_API_PATH);
-        result.setAccessControlBaseUrl(baseUrl);
+        LoginSettings result = LoginSettings.builder()
+                .accessControlBaseUrl(baseUrl)
+                .username(config.getUsername())
+                .password(config.getPassword())
+                .clientTypeForPasswordAuth(ClientType.RESOURCE_OWNER)
+                .clientTypeForRefreshToken(ClientType.CLI)
+                .build();
 
-        result.setUsername(config.getUsername());
-        result.setPassword(config.getPassword());
         result.getSessionCookies().addAll(config.getSessionCookie());
-        result.setClientTypeForPasswordAuth(ClientType.RESOURCE_OWNER);
-        result.setClientTypeForRefreshToken(ClientType.CLI);
 
         return result;
     }
@@ -243,7 +241,7 @@ public abstract class LegacyClient {
             for (EngineConfiguration engineConfiguration : engineConfigurations) {
                 if (engineConfiguration.getName().equalsIgnoreCase(config.getEngineConfigurationName())) {
                     config.setEngineConfigurationId(engineConfiguration.getId());
-                    log.info("Engine configuration: \"" + config.getEngineConfigurationName() + "\" was validated in server");
+                    log.info(String.format("Engine configuration: \"%s\" was validated in server", config.getEngineConfigurationName()));
                 }
             }
             if (config.getEngineConfigurationId() == null) {
@@ -259,7 +257,6 @@ public abstract class LegacyClient {
     }
 
 
-
     public void validateConfig(CxScanConfig config) throws CxClientException {
         String message = null;
         if (config == null) {
@@ -273,16 +270,14 @@ public abstract class LegacyClient {
     }
 
     private void resolveTeam() throws CxClientException, IOException {
-        
+
         configureTeamPath();
-        
+
         if (config.getTeamId() == null) {
             config.setTeamId(getTeamIdByName(config.getTeamPath()));
         }
-        
+
         printTeamPath();
-        
-        //httpClient.setTeamPathHeader(this.teamPath);
     }
 
     public String getTeamIdByName(String teamName) throws CxClientException, IOException {
@@ -309,7 +304,7 @@ public abstract class LegacyClient {
         httpClient.setTeamPathHeader(this.teamPath);
         return httpClient.getRequest(CX_ARM_URL, CONTENT_TYPE_APPLICATION_JSON_V1, CxArmConfig.class, 200, "CxARM URL", false);
     }
-    
+
     private void resolveCxARMUrl() throws CxClientException {
         try {
             this.config.setCxARMUrl(getCxARMConfig().getCxARMPolicyURL());
@@ -341,15 +336,16 @@ public abstract class LegacyClient {
         return (List<Preset>) httpClient.getRequest(CXPRESETS, CONTENT_TYPE_APPLICATION_JSON_V1, Preset.class, 200, "preset list", true);
     }
 
-    
+
     private void printPresetName() {
         try {
             String presetName = config.getPresetName();
             if (presetName == null) {
                 presetName = getPresetById(config.getPresetId()).getName();
             }
-            log.info("preset name: " + presetName);
+            log.info(String.format("preset name: %s", presetName));
         } catch (Exception e) {
+            log.warn("Error getting preset name.");
         }
     }
 
@@ -357,15 +353,16 @@ public abstract class LegacyClient {
         httpClient.setTeamPathHeader(this.teamPath);
         return httpClient.getRequest(CXPRESETS + "/" + presetId, CONTENT_TYPE_APPLICATION_JSON_V1, Preset.class, 200, "preset by id", false);
     }
-    
+
     private void printTeamPath() {
         try {
             this.teamPath = config.getTeamPath();
             if (this.teamPath == null) {
                 this.teamPath = getTeamNameById(config.getTeamId());
             }
-            log.info("full team path: " + this.teamPath);
+            log.info(String.format("full team path: %s", this.teamPath));
         } catch (Exception e) {
+            log.warn("Error getting team path.");
         }
     }
 
@@ -379,7 +376,6 @@ public abstract class LegacyClient {
         }
         throw new CxClientException("Could not resolve team name from id: " + teamId);
     }
-    
 
 
     public List<Project> getAllProjects() throws IOException, CxClientException {
@@ -396,7 +392,7 @@ public abstract class LegacyClient {
         return projects;
     }
 
-    public Project getProjectById(String projectId,String contentType) throws IOException, CxClientException {
+    public Project getProjectById(String projectId, String contentType) throws IOException, CxClientException {
         String projectNamePath = SAST_GET_PROJECT_BY_ID.replace("{projectId}", projectId);
         Project projects = null;
         try {
@@ -422,5 +418,13 @@ public abstract class LegacyClient {
 
     public void setTeamPath(String teamPath) {
         this.teamPath = teamPath;
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public void setState(State state) {
+        this.state = state;
     }
 }

@@ -1,9 +1,9 @@
 package com.cx.restclient.configuration;
 
 import com.cx.restclient.ast.dto.sast.AstSastConfig;
+import com.cx.restclient.ast.dto.sca.AstScaConfig;
 import com.cx.restclient.dto.*;
 import com.cx.restclient.sast.dto.ReportType;
-import com.cx.restclient.ast.dto.sca.AstScaConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.cookie.Cookie;
 
@@ -104,12 +104,16 @@ public class CxScanConfig implements Serializable {
     private Integer maxZipSize;
     private String defaultProjectName;
 
+    private String scaJsonReport;
+
     private AstScaConfig astScaConfig;
     private AstSastConfig astSastConfig;
 
     private final Set<ScannerType> scannerTypes = new HashSet<>();
     private final List<Cookie> sessionCookies = new ArrayList<>();
+    private Boolean isProxy = true;
     private ProxyConfig proxyConfig;
+    private Boolean useNTLM=false;
 
 
     public CxScanConfig() {
@@ -131,19 +135,19 @@ public class CxScanConfig implements Serializable {
     }
 
     public boolean isSastEnabled() {
-        return scannerTypes.contains(ScannerType.SAST) ;
+        return scannerTypes.contains(ScannerType.SAST);
     }
 
     public boolean isOsaEnabled() {
-        return scannerTypes.contains(ScannerType.OSA) ;
+        return scannerTypes.contains(ScannerType.OSA);
     }
 
     public boolean isAstScaEnabled() {
-        return scannerTypes.contains(ScannerType.AST_SCA) ;
+        return scannerTypes.contains(ScannerType.AST_SCA);
     }
 
     public boolean isAstSastEnabled() {
-        return scannerTypes.contains(ScannerType.AST_SAST) ;
+        return scannerTypes.contains(ScannerType.AST_SAST);
     }
 
     public void setSastEnabled(boolean sastEnabled) {
@@ -236,6 +240,14 @@ public class CxScanConfig implements Serializable {
 
     public String getUrl() {
         return url;
+    }
+
+    public String getScaJsonReport() {
+        return scaJsonReport;
+    }
+
+    public void setScaJsonReport(String scaJsonReport) {
+        this.scaJsonReport = scaJsonReport;
     }
 
     public void setUrl(String url) {
@@ -683,13 +695,14 @@ public class CxScanConfig implements Serializable {
     public void setConnectionRetries(Integer connectionRetries) {
         this.connectionRetries = connectionRetries;
     }
-     public String getMvnPath() {
-            return mvnPath;
-        }
 
-     public void setMvnPath(String mvnPath) {
-            this.mvnPath = mvnPath;
-        }
+    public String getMvnPath() {
+        return mvnPath;
+    }
+
+    public void setMvnPath(String mvnPath) {
+        this.mvnPath = mvnPath;
+    }
 
     public String getOsaScanDepth() {
         return osaScanDepth;
@@ -768,6 +781,14 @@ public class CxScanConfig implements Serializable {
         return isSastEnabled() || isOsaEnabled();
     }
 
+    public Boolean isProxy() {
+        return isProxy;
+    }
+
+    public void setProxy(Boolean proxy) {
+        isProxy = proxy;
+    }
+
     public ProxyConfig getProxyConfig() {
         return proxyConfig;
     }
@@ -776,7 +797,7 @@ public class CxScanConfig implements Serializable {
         this.proxyConfig = proxyConfig;
     }
 
-    public void addCookie(Cookie cookie){
+    public void addCookie(Cookie cookie) {
         this.sessionCookies.add(cookie);
     }
 
@@ -790,5 +811,13 @@ public class CxScanConfig implements Serializable {
 
     public void setToken(TokenLoginResponse token) {
         this.token = token;
+    }
+
+    public Boolean getNTLM() {
+        return useNTLM;
+    }
+
+    public void setNTLM(Boolean ntlm) {
+        useNTLM = ntlm;
     }
 }

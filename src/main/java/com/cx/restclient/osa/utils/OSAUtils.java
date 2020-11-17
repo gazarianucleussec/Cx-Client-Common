@@ -25,6 +25,7 @@ public abstract class OSAUtils {
             "p6", "php", "py", "rb", "swift", "clj", "cljx", "cljs", "cljc"};
 
     private static final String INCLUDE_ALL_EXTENSIONS = "**/**";
+    private static final String JSON_EXTENSION = ".json";
 
     public static final String DEFAULT_ARCHIVE_INCLUDES = "**/.*jar,**/*.war,**/*.ear,**/*.sca,**/*.gem,**/*.whl,**/*.egg,**/*.tar,**/*.tar.gz,**/*.tgz,**/*.zip,**/*.rar";
 
@@ -113,7 +114,7 @@ public abstract class OSAUtils {
     private static String getSbtTargetFolder(String sourceFolder) {
         List<File> files = new ArrayList<File>();
         files = getBuildSbtFiles(sourceFolder, files);
-        if(!files.isEmpty()) {
+        if (!files.isEmpty()) {
             return files.get(0).getAbsolutePath().replace("build.sbt", "target");
         }
         return "target";
@@ -124,11 +125,10 @@ public abstract class OSAUtils {
         List<File> files = Arrays.asList(folder.listFiles());
         for (File file : files) {
             if (file.isFile()) {
-                if(file.getName().endsWith("build.sbt")) {
+                if (file.getName().endsWith("build.sbt")) {
                     inputFiles.add(file);
                 }
-            }
-            else if (file.isDirectory()) {
+            } else if (file.isDirectory()) {
                 inputFiles = getBuildSbtFiles(file.getAbsolutePath(), inputFiles);
             }
         }
@@ -171,8 +171,7 @@ public abstract class OSAUtils {
         File workDirectory;
         if (!filePath.isAbsolute()) {
             workDirectory = new File(System.getProperty("user.dir") + CX_REPORT_LOCATION);
-        }
-        else {
+        } else {
             workDirectory = filePath.getParentFile();
         }
         if (!workDirectory.exists()) {
@@ -187,27 +186,28 @@ public abstract class OSAUtils {
             ObjectMapper objectMapper = new ObjectMapper();
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObj);
 
-            if(cliOsaGenerateJsonReport) {
-                workDirectory = new File(workDirectory.getPath().replace(".json", "_" + name + ".json"));
+            if (cliOsaGenerateJsonReport) {
+                //workDirectory = new File(workDirectory.getPath().replace(".json", "_" + name + ".json"));
                 if (!workDirectory.isAbsolute()) {
                     workDirectory = new File(System.getProperty("user.dir") + CX_REPORT_LOCATION + File.separator + workDirectory);
                 }
                 if (!workDirectory.getParentFile().exists()) {
                     workDirectory.getParentFile().mkdirs();
                 }
+                name = name.endsWith(JSON_EXTENSION) ? name : name + JSON_EXTENSION;
                 File jsonFile = new File(workDirectory + File.separator + name);
-                FileUtils.writeStringToFile(jsonFile , json);
-                log.info(name + " json location: " + jsonFile);
-            }
-            else {
+                FileUtils.writeStringToFile(jsonFile, json);
+                log.info(name + " saved under location: " + jsonFile);
+            } else {
                 String now = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(new Date());
-                String fileName = name + "_" + now + ".json";
+                String fileName = name + "_" + now + JSON_EXTENSION;
                 File jsonFile = new File(workDirectory + CX_REPORT_LOCATION, fileName);
                 FileUtils.writeStringToFile(jsonFile, json);
-                log.info(name + " json location: " + workDirectory + CX_REPORT_LOCATION + File.separator + fileName);
+                log.info(name + " saved under location: " + workDirectory + CX_REPORT_LOCATION + File.separator + fileName);
             }
         } catch (Exception ex) {
             log.warn("Failed to write OSA JSON report (" + name + ") to file: " + ex.getMessage());
         }
     }
+
 }

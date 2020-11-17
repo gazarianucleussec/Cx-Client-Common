@@ -1,38 +1,53 @@
 package com.cx.restclient.ast;
 
-import com.cx.restclient.ast.dto.common.*;
-import com.cx.restclient.ast.dto.sca.*;
+import com.cx.restclient.ast.dto.common.HandlerRef;
+import com.cx.restclient.ast.dto.common.RemoteRepositoryInfo;
+import com.cx.restclient.ast.dto.common.ScanConfig;
+import com.cx.restclient.ast.dto.sca.AstScaConfig;
+import com.cx.restclient.ast.dto.sca.AstScaResults;
+import com.cx.restclient.ast.dto.sca.CreateProjectRequest;
+import com.cx.restclient.ast.dto.sca.Project;
+import com.cx.restclient.ast.dto.sca.report.AstScaSummaryResults;
+import com.cx.restclient.ast.dto.sca.report.Finding;
 import com.cx.restclient.ast.dto.sca.report.Package;
-import com.cx.restclient.ast.dto.sca.report.*;
+import com.cx.restclient.common.CxPARAM;
 import com.cx.restclient.common.Scanner;
 import com.cx.restclient.common.UrlUtils;
 import com.cx.restclient.configuration.CxScanConfig;
 import com.cx.restclient.dto.*;
 import com.cx.restclient.exception.CxClientException;
 import com.cx.restclient.exception.CxHTTPClientException;
-import com.cx.restclient.httpClient.CxHttpClient;
 import com.cx.restclient.httpClient.utils.ContentType;
 import com.cx.restclient.httpClient.utils.HttpClientHelper;
 import com.cx.restclient.osa.dto.ClientType;
-import com.cx.restclient.sast.utils.zip.*;
+import com.cx.restclient.osa.utils.OSAUtils;
+import com.cx.restclient.sast.utils.State;
+import com.cx.restclient.sast.utils.zip.CxZipUtils;
+import com.cx.restclient.sast.utils.zip.NewCxZipFile;
+import com.cx.restclient.sast.utils.zip.Zipper;
 import com.cx.restclient.sca.dto.CxSCAResolvingConfiguration;
 import com.cx.restclient.sca.utils.CxSCAFileSystemUtils;
 import com.cx.restclient.sca.utils.fingerprints.CxSCAScanFingerprints;
 import com.cx.restclient.sca.utils.fingerprints.FingerprintCollector;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.*;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,21 +59,21 @@ import static com.cx.restclient.sast.utils.SASTParam.TEMP_FILE_NAME_TO_ZIP;
  * SCA - Software Composition Analysis - is the successor of OSA.
  */
 public class AstScaClient extends AstClient implements Scanner {
-    private static class UrlPaths {
-        private static final String RISK_MANAGEMENT_API = "/risk-management/";
-        public static final String PROJECTS = RISK_MANAGEMENT_API + "projects";
-        public static final String SUMMARY_REPORT = RISK_MANAGEMENT_API + "riskReports/%s/summary";
-        public static final String FINDINGS = RISK_MANAGEMENT_API + "riskReports/%s/vulnerabilities";
-        public static final String PACKAGES = RISK_MANAGEMENT_API + "riskReports/%s/packages";
-        public static final String LATEST_SCAN = RISK_MANAGEMENT_API + "riskReports?size=1&projectId=%s";
-        public static final String GET_UPLOAD_URL = "/api/uploads";
-        public static final String WEB_REPORT = "/#/projects/%s/reports/%s";
-        public static final String RESOLVING_CONFIGURATION_API = "/settings/projects/%s/resolving-configuration";
-    }
+    private static final String RISK_MANAGEMENT_API = properties.get("astSca.riskManagementApi");
+    private static final String PROJECTS = RISK_MANAGEMENT_API + properties.get("astSca.projects");
+    private static final String SUMMARY_REPORT = RISK_MANAGEMENT_API + properties.get("astSca.summaryReport");
+    private static final String FINDINGS = RISK_MANAGEMENT_API + properties.get("astSca.findings");
+    private static final String PACKAGES = RISK_MANAGEMENT_API + properties.get("astSca.packages");
+    private static final String LATEST_SCAN = RISK_MANAGEMENT_API + properties.get("astSca.latestScan");
+    private static final String WEB_REPORT = properties.get("astSca.webReport");
+    private static final String RESOLVING_CONFIGURATION_API = properties.get("astSca.resolvingConfigurationApi");
+
+    private static final String REPORT_SCA_PACKAGES = "cxSCAPackages";
+    private static final String REPORT_SCA_FINDINGS = "cxSCAVulnerabilities";
+    private static final String REPORT_SCA_SUMMARY = "cxSCASummary";
+    private static final String JSON_EXTENSION = ".json";
 
     private static final String ENGINE_TYPE_FOR_API = "sca";
-
-    public static final String ENCODING = StandardCharsets.UTF_8.name();
 
     private static final String TENANT_HEADER_NAME = "Account-Name";
 
@@ -147,17 +162,20 @@ public class AstScaClient extends AstClient implements Scanner {
     }
 
     @Override
-    public void init() {
+    public Results init() {
+        log.debug("Initializing {} client.", getScannerDisplayName());
+        AstScaResults scaResults = new AstScaResults();
         try {
             login();
-        } catch (IOException e) {
-            throw new CxClientException("Failed to init CxSCA Client.", e);
+        } catch (Exception e) {
+            super.handleInitError(e, scaResults);
         }
+        return scaResults;
     }
 
     public CxSCAResolvingConfiguration getCxSCAResolvingConfigurationForProject(String projectId) throws IOException {
         log.info("Resolving configuration for project: {}", projectId);
-        String path = String.format(UrlPaths.RESOLVING_CONFIGURATION_API, URLEncoder.encode(projectId, ENCODING));
+        String path = String.format(RESOLVING_CONFIGURATION_API, URLEncoder.encode(projectId, ENCODING));
 
         return httpClient.getRequest(path,
                 ContentType.CONTENT_TYPE_APPLICATION_JSON,
@@ -174,15 +192,21 @@ public class AstScaClient extends AstClient implements Scanner {
      */
     @Override
     public Results waitForScanResults() {
-        waitForScanToFinish(scanId);
-
-        return tryGetScanResults(scanId)
-                .orElseGet(() -> {
-                    AstScaResults scaResults = new AstScaResults();
-                    CxClientException e = new CxClientException("Unable to get scan results: scan not found.");
-                    scaResults.setWaitException(e);
-                    return scaResults;
-                });
+        AstScaResults scaResults;
+        try {
+            waitForScanToFinish(scanId);
+            scaResults = tryGetScanResults().orElseThrow(() -> new CxClientException("Unable to get scan results: scan not found."));
+            if (config.getScaJsonReport() != null) {
+                OSAUtils.writeJsonToFile(REPORT_SCA_FINDINGS + JSON_EXTENSION, scaResults.getFindings(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
+                OSAUtils.writeJsonToFile(REPORT_SCA_PACKAGES + JSON_EXTENSION, scaResults.getPackages(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
+                OSAUtils.writeJsonToFile(REPORT_SCA_SUMMARY + JSON_EXTENSION, scaResults.getSummary(), config.getReportsDir(), config.getOsaGenerateJsonReport(), log);
+            }
+        } catch (CxClientException e) {
+            log.error(e.getMessage());
+            scaResults = new AstScaResults();
+            scaResults.setException(e);
+        }
+        return scaResults;
     }
 
     @Override
@@ -209,18 +233,29 @@ public class AstScaClient extends AstClient implements Scanner {
                 response = submitSourcesFromRemoteRepo(scaConfig, projectId);
             } else {
                 if (scaConfig.isIncludeSources()) {
-                    response = submitAllSourcesFromLocalDir(projectId);
+                    response = submitAllSourcesFromLocalDir(projectId, astScaConfig.getZipFilePath());
                 } else {
                     response = submitManifestsAndFingerprintsFromLocalDir(projectId);
                 }
             }
             this.scanId = extractScanIdFrom(response);
             scaResults.setScanId(scanId);
-        } catch (IOException e) {
-            CxClientException ex = new CxClientException("Error creating scan.", e);
-            scaResults.setCreateException(ex);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            setState(State.FAILED);
+            scaResults.setException(new CxClientException("Error creating scan.", e));
         }
         return scaResults;
+    }
+
+    protected HttpResponse submitAllSourcesFromLocalDir(String projectId, String zipFilePath) throws IOException {
+        log.info("Using local directory flow.");
+
+        PathFilter filter = new PathFilter(config.getOsaFolderExclusions(), config.getOsaFilterPattern(), log);
+        String sourceDir = config.getEffectiveSourceDirForDependencyScan();
+        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, sourceDir, log);
+
+        return initiateScanForUpload(projectId, zipFile, zipFilePath);
     }
 
     private HttpResponse submitManifestsAndFingerprintsFromLocalDir(String projectId) throws IOException {
@@ -229,6 +264,9 @@ public class AstScaClient extends AstClient implements Scanner {
         String sourceDir = config.getEffectiveSourceDirForDependencyScan();
 
         PathFilter userFilter = new PathFilter(config.getOsaFolderExclusions(), config.getOsaFilterPattern(), log);
+        if (ArrayUtils.isNotEmpty(userFilter.getIncludes()) && !ArrayUtils.contains(userFilter.getIncludes(), "**")) {
+            userFilter.addToIncludes("**");
+        }
         Set<String> scannedFileSet = new HashSet<>(Arrays.asList(CxSCAFileSystemUtils.scanAndGetIncludedFiles(sourceDir, userFilter)));
 
         PathFilter manifestIncludeFilter = new PathFilter(null, getManifestsIncludePattern(), log);
@@ -254,7 +292,7 @@ public class AstScaClient extends AstClient implements Scanner {
 
         optionallyWriteFingerprintsToFile(fingerprints);
 
-        return initiateScanForUpload(projectId, zipFile);
+        return initiateScanForUpload(projectId, FileUtils.readFileToByteArray(zipFile), astScaConfig.getZipFilePath());
     }
 
 
@@ -267,9 +305,7 @@ public class AstScaClient extends AstClient implements Scanner {
         log.info("Collecting files to zip archive: {}", tempFile.getAbsolutePath());
         long maxZipSizeBytes = config.getMaxZipSize() != null ? config.getMaxZipSize() * 1024 * 1024 : MAX_ZIP_SIZE_BYTES;
 
-        NewCxZipFile zipper = null;
-        try {
-            zipper = new NewCxZipFile(tempFile, maxZipSizeBytes, log);
+        try (NewCxZipFile zipper = new NewCxZipFile(tempFile, maxZipSizeBytes, log)) {
             zipper.addMultipleFilesToArchive(new File(sourceDir), paths);
             if (zipper.getFileCount() == 0 && fingerprints.getFingerprints().isEmpty()) {
                 throw handleFileDeletion(tempFile);
@@ -286,12 +322,7 @@ public class AstScaClient extends AstClient implements Scanner {
             throw handleFileDeletion(tempFile, new IOException("Reached maximum upload size limit of " + FileUtils.byteCountToDisplaySize(maxZipSizeBytes)));
         } catch (IOException ioException) {
             throw handleFileDeletion(tempFile, ioException);
-        } finally {
-            if (zipper != null) {
-                zipper.close();
-            }
         }
-
     }
 
     private CxClientException handleFileDeletion(File file, IOException ioException) {
@@ -348,16 +379,6 @@ public class AstScaClient extends AstClient implements Scanner {
         }
     }
 
-    private HttpResponse submitAllSourcesFromLocalDir(String projectId) throws IOException {
-        log.info("Using local directory flow.");
-
-        PathFilter filter = new PathFilter(config.getOsaFolderExclusions(), config.getOsaFilterPattern(), log);
-        String sourceDir = config.getEffectiveSourceDirForDependencyScan();
-        File zipFile = CxZipUtils.getZippedSources(config, filter, sourceDir, log);
-
-        return initiateScanForUpload(projectId, zipFile);
-    }
-
     /**
      * Gets latest scan results using {@link CxScanConfig#getProjectName()} for the current config.
      *
@@ -370,46 +391,29 @@ public class AstScaClient extends AstClient implements Scanner {
             log.info("Getting latest scan results.");
             projectId = getRiskManagementProjectId(config.getProjectName());
             scanId = getLatestScanId(projectId);
-            result = tryGetScanResults(scanId).orElse(null);
-        } catch (IOException e) {
-            CxClientException ex = new CxClientException("Error getting latest scan results.", e);
-            result.setWaitException(ex);
+            result = tryGetScanResults().orElse(null);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            result.setException(new CxClientException("Error getting latest scan results.", e));
         }
         return result;
     }
 
-    private Optional<AstScaResults> tryGetScanResults(String scanId) {
+    private Optional<AstScaResults> tryGetScanResults() {
         AstScaResults result = null;
         if (StringUtils.isNotEmpty(scanId)) {
-            result = getScanResults(scanId);
+            result = getScanResults();
         } else {
             log.info("Unable to get scan results");
         }
         return Optional.ofNullable(result);
     }
 
-    private HttpResponse initiateScanForUpload(String projectId, File zipFile) throws IOException {
-        String uploadedArchiveUrl = getSourcesUploadUrl();
-        String cleanPath = uploadedArchiveUrl.split("\\?")[0];
-        log.info("Uploading to: {}", cleanPath);
-        uploadArchive(zipFile, uploadedArchiveUrl);
-
-        //delete only if path not specified in the config
-        if (StringUtils.isEmpty(astScaConfig.getZipFilePath())) {
-            CxZipUtils.deleteZippedSources(zipFile, config, log);
-        }
-
-        RemoteRepositoryInfo uploadedFileInfo = new RemoteRepositoryInfo();
-        uploadedFileInfo.setUrl(new URL(uploadedArchiveUrl));
-
-        return sendStartScanRequest(uploadedFileInfo, SourceLocationType.LOCAL_DIRECTORY, projectId);
-    }
-
     private String getLatestScanId(String projectId) throws IOException {
         String result = null;
         if (StringUtils.isNotEmpty(projectId)) {
             log.debug("Getting latest scan ID for project ID: {}", projectId);
-            String path = String.format(UrlPaths.LATEST_SCAN, URLEncoder.encode(projectId, ENCODING));
+            String path = String.format(LATEST_SCAN, URLEncoder.encode(projectId, ENCODING));
             JsonNode response = httpClient.getRequest(path,
                     ContentType.CONTENT_TYPE_APPLICATION_JSON,
                     ArrayNode.class,
@@ -427,28 +431,6 @@ public class AstScaClient extends AstClient implements Scanner {
         return result;
     }
 
-    private String getSourcesUploadUrl() throws IOException {
-        JsonNode response = httpClient.postRequest(UrlPaths.GET_UPLOAD_URL, null, null, JsonNode.class,
-                HttpStatus.SC_OK, "get upload URL for sources");
-
-        if (response == null || response.get("url") == null) {
-            throw new CxClientException("Unable to get the upload URL.");
-        }
-
-        return response.get("url").asText();
-    }
-
-    private void uploadArchive(File source, String uploadUrl) throws IOException {
-        log.info("Uploading the zipped sources.");
-
-        HttpEntity request = new FileEntity(source);
-
-        CxHttpClient uploader = createHttpClient(uploadUrl);
-
-        // Relative path is empty, because we use the whole upload URL as the base URL for the HTTP client.
-        // Content type is empty, because the server at uploadUrl throws an error if Content-Type is non-empty.
-        uploader.putRequest("", "", request, JsonNode.class, HttpStatus.SC_OK, "upload ZIP file");
-    }
 
     private void printWebReportLink(AstScaResults scaResult) {
         if (!StringUtils.isEmpty(scaResult.getWebReportLink())) {
@@ -466,14 +448,13 @@ public class AstScaClient extends AstClient implements Scanner {
         log.info("Logging into {}", getScannerDisplayName());
         AstScaConfig scaConfig = config.getAstScaConfig();
 
-        LoginSettings settings = new LoginSettings();
-
         String acUrl = scaConfig.getAccessControlUrl();
-
-        settings.setAccessControlBaseUrl(acUrl);
-        settings.setUsername(scaConfig.getUsername());
-        settings.setPassword(scaConfig.getPassword());
-        settings.setTenant(scaConfig.getTenant());
+        LoginSettings settings = LoginSettings.builder()
+                .accessControlBaseUrl(UrlUtils.parseURLToString(acUrl, CxPARAM.AUTHENTICATION))
+                .username(scaConfig.getUsername())
+                .password(scaConfig.getPassword())
+                .tenant(scaConfig.getTenant())
+                .build();
 
         ClientTypeResolver resolver = new ClientTypeResolver();
         ClientType clientType = resolver.determineClientType(acUrl);
@@ -539,7 +520,7 @@ public class AstScaClient extends AstClient implements Scanner {
     private Project sendGetProjectRequest(String projectName) throws IOException {
         Project result;
         try {
-            String getProjectByName = String.format("%s?name=%s", UrlPaths.PROJECTS, URLEncoder.encode(projectName, ENCODING));
+            String getProjectByName = String.format("%s?name=%s", PROJECTS, URLEncoder.encode(projectName, ENCODING));
             result = httpClient.getRequest(getProjectByName,
                     ContentType.CONTENT_TYPE_APPLICATION_JSON,
                     Project.class,
@@ -557,7 +538,7 @@ public class AstScaClient extends AstClient implements Scanner {
     }
 
     private void getRiskManagementProjects() throws IOException {
-        httpClient.getRequest(UrlPaths.PROJECTS,
+        httpClient.getRequest(PROJECTS,
                 ContentType.CONTENT_TYPE_APPLICATION_JSON,
                 Project.class,
                 HttpStatus.SC_OK,
@@ -571,7 +552,7 @@ public class AstScaClient extends AstClient implements Scanner {
 
         StringEntity entity = HttpClientHelper.convertToStringEntity(request);
 
-        Project newProject = httpClient.postRequest(UrlPaths.PROJECTS,
+        Project newProject = httpClient.postRequest(PROJECTS,
                 ContentType.CONTENT_TYPE_APPLICATION_JSON,
                 entity,
                 Project.class,
@@ -581,7 +562,7 @@ public class AstScaClient extends AstClient implements Scanner {
         return newProject.getId();
     }
 
-    private AstScaResults getScanResults(String scanId) {
+    private AstScaResults getScanResults() {
         AstScaResults result;
         log.debug("Getting results for scan ID {}", scanId);
         try {
@@ -598,7 +579,7 @@ public class AstScaClient extends AstClient implements Scanner {
             List<Package> packages = getPackages(scanId);
             result.setPackages(packages);
 
-            String reportLink = getWebReportLink(scanId);
+            String reportLink = getWebReportLink(config.getAstScaConfig().getWebAppUrl());
             result.setWebReportLink(reportLink);
             printWebReportLink(result);
             result.setScaResultReady(true);
@@ -609,32 +590,17 @@ public class AstScaClient extends AstClient implements Scanner {
         return result;
     }
 
-    private String getWebReportLink(String scanId) {
-        final String MESSAGE = "Unable to generate web report link.";
-        String result = null;
-        try {
-            String webAppUrl = config.getAstScaConfig().getWebAppUrl();
-            if (StringUtils.isEmpty(webAppUrl)) {
-                log.warn("{} Web app URL is not specified.", MESSAGE);
-            } else {
-                String path = String.format(UrlPaths.WEB_REPORT,
-                        URLEncoder.encode(projectId, ENCODING),
-                        URLEncoder.encode(scanId, ENCODING));
-
-                result = UrlUtils.parseURLToString(webAppUrl, path);
-            }
-        } catch (MalformedURLException e) {
-            log.warn("Unable to generate web report link: invalid web app URL.", e);
-        } catch (Exception e) {
-            log.warn("Unable to generate web report link: general error.", e);
-        }
-        return result;
+    @Override
+    protected String getWebReportPath() throws UnsupportedEncodingException {
+        return String.format(WEB_REPORT,
+                URLEncoder.encode(projectId, ENCODING),
+                URLEncoder.encode(scanId, ENCODING));
     }
 
     private AstScaSummaryResults getSummaryReport(String scanId) throws IOException {
         log.debug("Getting summary report.");
 
-        String path = String.format(UrlPaths.SUMMARY_REPORT, URLEncoder.encode(scanId, ENCODING));
+        String path = String.format(SUMMARY_REPORT, URLEncoder.encode(scanId, ENCODING));
 
         return httpClient.getRequest(path,
                 ContentType.CONTENT_TYPE_APPLICATION_JSON,
@@ -647,7 +613,7 @@ public class AstScaClient extends AstClient implements Scanner {
     private List<Finding> getFindings(String scanId) throws IOException {
         log.debug("Getting findings.");
 
-        String path = String.format(UrlPaths.FINDINGS, URLEncoder.encode(scanId, ENCODING));
+        String path = String.format(FINDINGS, URLEncoder.encode(scanId, ENCODING));
 
         ArrayNode responseJson = httpClient.getRequest(path,
                 ContentType.CONTENT_TYPE_APPLICATION_JSON,
@@ -664,7 +630,7 @@ public class AstScaClient extends AstClient implements Scanner {
     private List<Package> getPackages(String scanId) throws IOException {
         log.debug("Getting packages.");
 
-        String path = String.format(UrlPaths.PACKAGES, URLEncoder.encode(scanId, ENCODING));
+        String path = String.format(PACKAGES, URLEncoder.encode(scanId, ENCODING));
 
         return (List<Package>) httpClient.getRequest(path,
                 ContentType.CONTENT_TYPE_APPLICATION_JSON,

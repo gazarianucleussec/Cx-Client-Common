@@ -6,11 +6,10 @@ import com.cx.restclient.common.Waiter;
 import com.cx.restclient.configuration.CxScanConfig;
 import com.cx.restclient.dto.*;
 import com.cx.restclient.exception.CxClientException;
-
 import com.cx.restclient.sast.dto.*;
 import com.cx.restclient.sast.utils.LegacyClient;
-
 import com.cx.restclient.sast.utils.SASTUtils;
+import com.cx.restclient.sast.utils.State;
 import com.cx.restclient.sast.utils.zip.CxZipUtils;
 import com.google.gson.Gson;
 import org.apache.http.HttpEntity;
@@ -23,9 +22,9 @@ import org.apache.http.entity.mime.content.InputStreamBody;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -183,6 +182,18 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         };
     }
 
+    @Override
+    public Results init() {
+        SASTResults initSastResults = new SASTResults();
+        try {
+            initiate();
+        } catch (CxClientException e) {
+            log.error(e.getMessage());
+            setState(State.FAILED);
+            initSastResults.setException(e);
+        }
+        return initSastResults;
+    }
 
     //**------ API  ------**//
 
@@ -199,8 +210,11 @@ public class CxSASTClient extends LegacyClient implements Scanner {
                 scanId = createRemoteSourceScan(projectId);
             }
             sastResults.setScanId(scanId);
-        } catch (IOException e) {
-            sastResults.setCreateException(e);
+            sastResults.setSastScanLink(config.getUrl(), scanId, projectId);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            setState(State.FAILED);
+            sastResults.setException(new CxClientException(e));
         }
     }
 
@@ -208,9 +222,8 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         configureScanSettings(projectId);
         //prepare sources for scan
         PathFilter filter = new PathFilter(config.getSastFolderExclusions(), config.getSastFilterPattern(), log);
-        File zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir(), log);
+        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir(), log);
         uploadZipFile(zipFile, projectId);
-        CxZipUtils.deleteZippedSources(zipFile, config, log);
 
         return createScan(projectId);
     }
@@ -293,16 +306,13 @@ public class CxSASTClient extends LegacyClient implements Scanner {
     //GET SAST results + reports
     @Override
     public Results waitForScanResults() {
-        //SASTResults sastResults;
-
-        log.info("------------------------------------Get CxSAST Results:-----------------------------------");
-        //wait for SAST scan to finish
-        log.info("Waiting for CxSAST scan to finish.");
-        sastWaiter.waitForTaskToFinish(Long.toString(scanId), config.getSastScanTimeoutInMinutes() * 60, log);
-        log.info("Retrieving SAST scan results");
-
-
         try {
+            log.info("------------------------------------Get CxSAST Results:-----------------------------------");
+            //wait for SAST scan to finish
+            log.info("Waiting for CxSAST scan to finish.");
+            sastWaiter.waitForTaskToFinish(Long.toString(scanId), config.getSastScanTimeoutInMinutes() * 60, log);
+            log.info("Retrieving SAST scan results");
+
             //retrieve SAST scan results
             sastResults = retrieveSASTResults(scanId, projectId);
             if (config.getEnablePolicyViolations()) {
@@ -336,8 +346,9 @@ public class CxSASTClient extends LegacyClient implements Scanner {
                     }
                 }
             }
-        } catch (IOException e) {
-            sastResults.setWaitException(e);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            sastResults.setException(new CxClientException(e));
         }
 
         return sastResults;
@@ -382,8 +393,9 @@ public class CxSASTClient extends LegacyClient implements Scanner {
                     return retrieveSASTResults(s.getId(), projectId);
                 }
             }
-        } catch (IOException e) {
-            sastResults.setWaitException(e);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            sastResults.setException(new CxClientException(e));
         }
         return sastResults;
     }
@@ -443,15 +455,17 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         httpClient.putRequest(String.format(SAST_EXCLUDE_FOLDERS_FILES_PATTERNS, projectId), CONTENT_TYPE_APPLICATION_JSON_V1, entity, null, 200, "exclude project's settings");
     }
 
-    private void uploadZipFile(File zipFile, long projectId) throws IOException {
+    private void uploadZipFile(byte[] zipFile, long projectId) throws CxClientException, IOException {
         log.info("Uploading zip file");
 
-        InputStreamBody streamBody = new InputStreamBody(new FileInputStream(zipFile.getAbsoluteFile()), ContentType.APPLICATION_OCTET_STREAM, "zippedSource");
-        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-        builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-        builder.addPart("zippedSource", streamBody);
-        HttpEntity entity = builder.build();
-        httpClient.postRequest(SAST_ZIP_ATTACHMENTS.replace(PROJECT_ID_PATH_PARAM, Long.toString(projectId)), null, new BufferedHttpEntity(entity), null, 204, "upload ZIP file");
+        try (InputStream is = new ByteArrayInputStream(zipFile)) {
+            InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, "zippedSource");
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+            builder.addPart("zippedSource", streamBody);
+            HttpEntity entity = builder.build();
+            httpClient.postRequest(SAST_ZIP_ATTACHMENTS.replace(PROJECT_ID_PATH_PARAM, Long.toString(projectId)), null, new BufferedHttpEntity(entity), null, 204, "upload ZIP file");
+        }
     }
 
     private long createScan(long projectId) throws IOException {
@@ -543,7 +557,6 @@ public class CxSASTClient extends LegacyClient implements Scanner {
     public Results initiateScan() {
         sastResults = new SASTResults();
         createSASTScan(projectId);
-        sastResults.setSastScanLink(config.getUrl(), scanId, projectId);
         return sastResults;
     }
 }
