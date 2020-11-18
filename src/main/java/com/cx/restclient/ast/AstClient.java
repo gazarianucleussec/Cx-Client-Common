@@ -129,7 +129,7 @@ public abstract class AstClient {
         log.info("------------------------------------Get {} Results:-----------------------------------", getScannerDisplayName());
         log.info("Waiting for {} scan to finish", getScannerDisplayName());
 
-        AstWaiter waiter = new AstWaiter(httpClient, config, getScannerDisplayName());
+        AstWaiter waiter = new AstWaiter(httpClient, config, getScannerDisplayName(), log);
         waiter.waitForScanToFinish(scanId);
         log.info("{} scan finished successfully. Retrieving {} scan results.", getScannerDisplayName(), getScannerDisplayName());
     }
