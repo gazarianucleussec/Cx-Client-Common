@@ -86,7 +86,7 @@ public abstract class SASTUtils {
             FileUtils.writeByteArrayToFile(reportFile, scanReport);
             log.info("report location: " + reportFile.getAbsolutePath());
         } catch (Exception e) {
-            log.error("Failed to write report: ", e.getMessage());
+            log.error("Failed to write report: " + e.getMessage(), e);
         }
     }
 }
