@@ -140,13 +140,14 @@ public abstract class AstClient {
     private ScanStartHandler getScanStartHandler(RemoteRepositoryInfo repoInfo) {
         log.debug("Creating the handler object.");
 
-        HandlerRef ref = getBranchToScan(repoInfo);
-
+        //HandlerRef ref = getBranchToScan(repoInfo);
+        String branch = repoInfo.getBranch();
         // AST-SAST doesn't allow nulls here.
         String password = StringUtils.defaultString(repoInfo.getPassword());
         String username = StringUtils.defaultString(repoInfo.getUsername());
 
         GitCredentials credentials = GitCredentials.builder()
+                .username(username)
                 .type(CREDENTIAL_TYPE_PASSWORD)
                 .value(password)
                 .build();
@@ -155,10 +156,10 @@ public abstract class AstClient {
 
         // The ref/username/credentials properties are mandatory even if not specified in repoInfo.
         return ScanStartHandler.builder()
-                .ref(ref)
-                .username(username)
+                //.ref(ref)
+                .repoUrl(effectiveRepoUrl.toString())
+                .branch(branch)
                 .credentials(credentials)
-                .url(effectiveRepoUrl.toString())
                 .build();
     }
 

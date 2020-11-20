@@ -51,7 +51,7 @@ public class AstSastClient extends AstClient implements Scanner {
     private static final int NO_FINDINGS_CODE = 4004;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final String API_VERSION = "*/*; version=0.1";
+    private static final String API_VERSION = "*/*; version=1.0";
     private static final String SCAN_ID_PARAM_NAME = "scan-id";
     private static final String OFFSET_PARAM_NAME = "offset";
     private static final String LIMIT_PARAM_NAME = "limit";

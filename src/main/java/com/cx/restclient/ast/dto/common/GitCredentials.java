@@ -6,6 +6,7 @@ import lombok.Getter;
 @Builder
 @Getter
 public class GitCredentials {
+    private String username;
     private String type;
     private String value;
 }
