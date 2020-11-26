@@ -51,9 +51,10 @@ public class CxSASTClient extends LegacyClient implements Scanner {
     private Waiter<ResponseQueueScanStatus> sastWaiter;
     private static final String SCAN_ID_PATH_PARAM = "{scanId}";
     private static final String PROJECT_ID_PATH_PARAM = "{projectId}";
+    private static final String SCAN_WITH_SETTINGS_URL = "sast/scanWithSettings";
     private long scanId;
     private SASTResults sastResults = new SASTResults();
-
+    private static final String swaggerLocation = "help/swagger/docs/v1.1";
     private Waiter<ReportStatus> reportWaiter = new Waiter<ReportStatus>("Scan report", 10, 3) {
         @Override
         public ReportStatus getStatus(String id) throws IOException {
@@ -219,13 +220,21 @@ public class CxSASTClient extends LegacyClient implements Scanner {
     }
 
     private long createLocalSASTScan(long projectId) throws IOException {
-        configureScanSettings(projectId);
-        //prepare sources for scan
-        PathFilter filter = new PathFilter(config.getSastFolderExclusions(), config.getSastFilterPattern(), log);
-        byte[] zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir(), log);
-        uploadZipFile(zipFile, projectId);
+        if(isScanWithSettingsSupported()){
+            log.info("Uploading the zipped source code.");
+            PathFilter filter = new PathFilter(config.getSastFolderExclusions(), config.getSastFilterPattern(), log);
+            byte[] zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir(), log);
+            ScanWithSettingsResponse response = scanWithSettings(zipFile,projectId);
+            return response.getId();
+        }else{
+            configureScanSettings(projectId);
+            //prepare sources for scan
+            PathFilter filter = new PathFilter(config.getSastFolderExclusions(), config.getSastFilterPattern(), log);
+            byte[] zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir(), log);
+            uploadZipFile(zipFile, projectId);
 
-        return createScan(projectId);
+            return createScan(projectId);
+        }
     }
 
     private long createRemoteSourceScan(long projectId) throws IOException {
@@ -559,4 +568,33 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         createSASTScan(projectId);
         return sastResults;
     }
+
+    private boolean isScanWithSettingsSupported() {
+        try {
+            HashMap swaggerResponse = this.httpClient.getRequest(this.swaggerLocation, CONTENT_TYPE_APPLICATION_JSON, HashMap.class, 200, "SAST scan status", false);
+            return swaggerResponse.toString().contains("/sast/scanWithSettings");
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private ScanWithSettingsResponse scanWithSettings(byte[] zipFile, long projectId) throws IOException {
+        log.info("Uploading zip file");
+
+        try (InputStream is = new ByteArrayInputStream(zipFile)) {
+            InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, "zippedSource");
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+            builder.addTextBody("projectId",Long.toString(projectId), ContentType.APPLICATION_JSON);
+            builder.addTextBody("overrideProjectSetting", "false" , ContentType.APPLICATION_JSON);
+            builder.addTextBody("isIncremental", config.getIncremental().toString() , ContentType.APPLICATION_JSON);
+            builder.addTextBody("isPublic", config.getPublic().toString() , ContentType.APPLICATION_JSON);
+            builder.addTextBody("forceScan", config.getForceScan().toString() , ContentType.APPLICATION_JSON);
+            builder.addTextBody("presetId", config.getPresetId().toString() , ContentType.APPLICATION_JSON);
+            builder.addPart("zippedSource", streamBody);
+            HttpEntity entity = builder.build();
+            return httpClient.postRequest(SCAN_WITH_SETTINGS_URL, null, new BufferedHttpEntity(entity), ScanWithSettingsResponse.class, 201, "upload ZIP file");
+        }
+    }
+
 }
