@@ -224,7 +224,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
             log.info("Uploading the zipped source code.");
             PathFilter filter = new PathFilter(config.getSastFolderExclusions(), config.getSastFilterPattern(), log);
             byte[] zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir(), log);
-            ScanWithSettingsResponse response = scanWithSettings(zipFile,projectId);
+            ScanWithSettingsResponse response = scanWithSettings(zipFile,projectId,false );
             return response.getId();
         }else{
             configureScanSettings(projectId);
@@ -292,10 +292,16 @@ public class CxSASTClient extends LegacyClient implements Scanner {
                 entity = new StringEntity("", StandardCharsets.UTF_8);
 
         }
-        configureScanSettings(projectId);
-        createRemoteSourceRequest(projectId, entity, type.value(), isSSH);
+        if (isScanWithSettingsSupported()) {
+            createRemoteSourceRequest(projectId, entity, type.value(), isSSH);
+            ScanWithSettingsResponse response = scanWithSettings(null, projectId, true);
+            return response.getId();
+        } else {
+            configureScanSettings(projectId);
+            createRemoteSourceRequest(projectId, entity, type.value(), isSSH);
+            return createScan(projectId);
 
-        return createScan(projectId);
+        }
     }
 
 
@@ -578,23 +584,23 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         }
     }
 
-    private ScanWithSettingsResponse scanWithSettings(byte[] zipFile, long projectId) throws IOException {
+    private ScanWithSettingsResponse scanWithSettings(byte[] zipFile, long projectId, boolean isRemote) throws IOException {
         log.info("Uploading zip file");
-
-        try (InputStream is = new ByteArrayInputStream(zipFile)) {
-            InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, "zippedSource");
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-            builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-            builder.addTextBody("projectId",Long.toString(projectId), ContentType.APPLICATION_JSON);
-            builder.addTextBody("overrideProjectSetting", "false" , ContentType.APPLICATION_JSON);
-            builder.addTextBody("isIncremental", config.getIncremental().toString() , ContentType.APPLICATION_JSON);
-            builder.addTextBody("isPublic", config.getPublic().toString() , ContentType.APPLICATION_JSON);
-            builder.addTextBody("forceScan", config.getForceScan().toString() , ContentType.APPLICATION_JSON);
-            builder.addTextBody("presetId", config.getPresetId().toString() , ContentType.APPLICATION_JSON);
-            builder.addPart("zippedSource", streamBody);
-            HttpEntity entity = builder.build();
-            return httpClient.postRequest(SCAN_WITH_SETTINGS_URL, null, new BufferedHttpEntity(entity), ScanWithSettingsResponse.class, 201, "upload ZIP file");
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+        if(!isRemote) {
+            try (InputStream is = new ByteArrayInputStream(zipFile)) {
+                InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, "zippedSource");
+                builder.addPart("zippedSource", streamBody);
+            }
         }
+        builder.addTextBody("projectId",Long.toString(projectId), ContentType.APPLICATION_JSON);
+        builder.addTextBody("overrideProjectSetting", "false" , ContentType.APPLICATION_JSON);
+        builder.addTextBody("isIncremental", config.getIncremental().toString() , ContentType.APPLICATION_JSON);
+        builder.addTextBody("isPublic", config.getPublic().toString() , ContentType.APPLICATION_JSON);
+        builder.addTextBody("forceScan", config.getForceScan().toString() , ContentType.APPLICATION_JSON);
+        builder.addTextBody("presetId", config.getPresetId().toString() , ContentType.APPLICATION_JSON);
+        HttpEntity entity = builder.build();
+        return httpClient.postRequest(SCAN_WITH_SETTINGS_URL, null, new BufferedHttpEntity(entity), ScanWithSettingsResponse.class, 201, "upload ZIP file");
     }
-
 }
