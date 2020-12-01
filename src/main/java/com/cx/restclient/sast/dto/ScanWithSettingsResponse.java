@@ -1,7 +1,7 @@
 package com.cx.restclient.sast.dto;
 
 public class ScanWithSettingsResponse {
-    int id;
+    private int id;
 
     public ScanWithSettingsResponse(int id) {
         this.id = id;

@@ -54,7 +54,8 @@ public class CxSASTClient extends LegacyClient implements Scanner {
     private static final String SCAN_WITH_SETTINGS_URL = "sast/scanWithSettings";
     private long scanId;
     private SASTResults sastResults = new SASTResults();
-    private static final String swaggerLocation = "help/swagger/docs/v1.1";
+    private static final String SWAGGER_LOCATION = "help/swagger/docs/v1.1";
+    private static final String ZIPPED_SOURCE = "zippedSource";
     private Waiter<ReportStatus> reportWaiter = new Waiter<ReportStatus>("Scan report", 10, 3) {
         @Override
         public ReportStatus getStatus(String id) throws IOException {
@@ -474,10 +475,10 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         log.info("Uploading zip file");
 
         try (InputStream is = new ByteArrayInputStream(zipFile)) {
-            InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, "zippedSource");
+            InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, ZIPPED_SOURCE);
             MultipartEntityBuilder builder = MultipartEntityBuilder.create();
             builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-            builder.addPart("zippedSource", streamBody);
+            builder.addPart(ZIPPED_SOURCE, streamBody);
             HttpEntity entity = builder.build();
             httpClient.postRequest(SAST_ZIP_ATTACHMENTS.replace(PROJECT_ID_PATH_PARAM, Long.toString(projectId)), null, new BufferedHttpEntity(entity), null, 204, "upload ZIP file");
         }
@@ -577,7 +578,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
 
     private boolean isScanWithSettingsSupported() {
         try {
-            HashMap swaggerResponse = this.httpClient.getRequest(this.swaggerLocation, CONTENT_TYPE_APPLICATION_JSON, HashMap.class, 200, "SAST scan status", false);
+            HashMap swaggerResponse = this.httpClient.getRequest(SWAGGER_LOCATION, CONTENT_TYPE_APPLICATION_JSON, HashMap.class, 200, "SAST scan status", false);
             return swaggerResponse.toString().contains("/sast/scanWithSettings");
         } catch (IOException e) {
             return false;
@@ -590,8 +591,8 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
         if(!isRemote) {
             try (InputStream is = new ByteArrayInputStream(zipFile)) {
-                InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, "zippedSource");
-                builder.addPart("zippedSource", streamBody);
+                InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, ZIPPED_SOURCE);
+                builder.addPart(ZIPPED_SOURCE, streamBody);
             }
         }
         builder.addTextBody("projectId",Long.toString(projectId), ContentType.APPLICATION_JSON);
