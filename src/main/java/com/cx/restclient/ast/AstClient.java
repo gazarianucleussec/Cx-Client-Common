@@ -48,6 +48,7 @@ public abstract class AstClient {
                 config.isDisableCertificateValidation(),
                 config.isUseSSOLogin(),
                 null,
+                config.isProxy(),
                 config.getProxyConfig(),
                 log);
         //initializing Team Path to prevent null pointer in login when called from automation

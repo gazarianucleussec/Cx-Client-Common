@@ -103,10 +103,10 @@ public class CxHttpClient {
     private String teamPath;
     private CookieStore cookieStore = new BasicCookieStore();
     private HttpClientBuilder cb = HttpClients.custom();
-    private final Map<String,String> customHeaders = new HashMap<>();
+    private final Map<String, String> customHeaders = new HashMap<>();
 
     public CxHttpClient(String rootUri, String origin, boolean disableSSLValidation, boolean isSSO, String refreshToken,
-                        @Nullable ProxyConfig proxyConfig, Logger log) throws CxClientException {
+                        boolean isProxy, @Nullable ProxyConfig proxyConfig, Logger log) throws CxClientException {
         this.log = log;
         this.rootUri = rootUri;
         this.refreshToken = refreshToken;
@@ -116,9 +116,9 @@ public class CxHttpClient {
         cb.setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build());
         setSSLTls("TLSv1.2", log);
         SSLContextBuilder builder = new SSLContextBuilder();
-        SSLConnectionSocketFactory sslConnectionSocketFactory=null;
-        Registry<ConnectionSocketFactory> registry=null;
-        PoolingHttpClientConnectionManager cm=null;
+        SSLConnectionSocketFactory sslConnectionSocketFactory = null;
+        Registry<ConnectionSocketFactory> registry = null;
+        PoolingHttpClientConnectionManager cm = null;
         if (disableSSLValidation) {
             try {
                 builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
@@ -139,7 +139,13 @@ public class CxHttpClient {
         }
         cb.setConnectionManagerShared(true);
 
-        setCustomProxy(cb, proxyConfig, log);
+        if (isProxy) {
+            if (proxyConfig != null) {
+                setCustomProxy(cb, proxyConfig, log);
+            } else {
+                cb.useSystemProperties();
+            }
+        }
 
         if (useSSo) {
             cb.setDefaultCredentialsProvider(new WindowsCredentialsProvider(new SystemDefaultCredentialsProvider()));
@@ -148,7 +154,6 @@ public class CxHttpClient {
             cb.setConnectionReuseStrategy(new NoConnectionReuseStrategy());
         }
         cb.setDefaultAuthSchemeRegistry(getAuthSchemeProviderRegistry());
-        cb.useSystemProperties();
         apacheClient = cb.build();
     }
 
@@ -215,15 +220,14 @@ public class CxHttpClient {
     public void login(LoginSettings settings) throws IOException, CxClientException {
         lastLoginSettings = settings;
 
-        if(!settings.getSessionCookies().isEmpty()){
+        if (!settings.getSessionCookies().isEmpty()) {
             setSessionCookies(settings.getSessionCookies());
             return;
         }
 
         if (settings.getRefreshToken() != null) {
             token = getAccessTokenFromRefreshToken(settings);
-        }
-        else if (useSSo) {
+        } else if (useSSo) {
             if (settings.getVersion().equals("lower than 9.0")) {
                 ssoLegacyLogin();
             } else {
@@ -261,7 +265,7 @@ public class CxHttpClient {
         return new ArrayList<>(cookieStore.getCookies());
     }
 
-    private void setSessionCookies(List<Cookie> cookies){
+    private void setSessionCookies(List<Cookie> cookies) {
         String cxCookie = null;
         String csrfToken = null;
 
@@ -515,7 +519,7 @@ public class CxHttpClient {
         } catch (CxTokenExpiredException ex) {
             if (retry) {
                 logTokenError(httpMethod, statusCode, ex);
-                if(lastLoginSettings != null) {
+                if (lastLoginSettings != null) {
                     login(lastLoginSettings);
                     return request(httpMethod, contentType, entity, responseType, expectStatus, failedMsg, isCollection, false);
                 }
@@ -569,7 +573,7 @@ public class CxHttpClient {
         }
     }
 
-    public void setToken(TokenLoginResponse token){
+    public void setToken(TokenLoginResponse token) {
         this.token = token;
     }
 

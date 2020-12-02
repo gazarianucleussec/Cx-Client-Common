@@ -145,6 +145,7 @@ public abstract class LegacyClient {
                     config.isDisableCertificateValidation(),
                     config.isUseSSOLogin(),
                     config.getRefreshToken(),
+                    config.isProxy(),
                     config.getProxyConfig(),
                     log);
         }
