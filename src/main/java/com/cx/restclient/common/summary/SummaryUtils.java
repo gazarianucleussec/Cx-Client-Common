@@ -11,7 +11,6 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.Version;
-import org.apache.commons.collections.CollectionUtils;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -185,7 +184,8 @@ public abstract class SummaryUtils {
 
             if (Boolean.TRUE.equals(config.isOsaEnabled())
                     && osaResults != null
-                    && CollectionUtils.isNotEmpty(osaResults.getOsaPolicies())) {
+                    && osaResults.getOsaPolicies() != null
+                    && !osaResults.getOsaPolicies().isEmpty()) {
                 policyViolated = true;
                 policies.putAll(osaResults.getOsaPolicies().stream().collect(
                         Collectors.toMap(Policy::getPolicyName, Policy::getRuleName,
