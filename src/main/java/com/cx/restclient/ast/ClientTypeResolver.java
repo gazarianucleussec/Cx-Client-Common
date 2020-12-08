@@ -1,21 +1,21 @@
 package com.cx.restclient.ast;
 
+import com.cx.restclient.configuration.CxScanConfig;
 import com.cx.restclient.exception.CxClientException;
+import com.cx.restclient.httpClient.CxHttpClient;
 import com.cx.restclient.osa.dto.ClientType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+
+import static com.cx.restclient.httpClient.utils.ContentType.CONTENT_TYPE_APPLICATION_JSON_V1;
 
 @Slf4j
 public class ClientTypeResolver {
@@ -27,6 +27,14 @@ public class ClientTypeResolver {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    private CxHttpClient httpClient;
+
+    private CxScanConfig config;
+
+    public ClientTypeResolver(CxScanConfig config) {
+        this.config = config;
+    }
+
     /**
      * Determines which scopes and client secret must be used for SCA login.
      *
@@ -34,8 +42,7 @@ public class ClientTypeResolver {
      * @return client settings for the provided AC server.
      */
     public ClientType determineClientType(String accessControlServerBaseUrl) {
-        String fullUrl = getFullUrl(accessControlServerBaseUrl);
-        JsonNode response = getConfigResponse(fullUrl);
+        JsonNode response = getConfigResponse(accessControlServerBaseUrl);
         Set<String> supportedScopes = getSupportedScopes(response);
         Set<String> scopesToUse = getScopesForAuth(supportedScopes);
 
@@ -68,14 +75,28 @@ public class ClientTypeResolver {
         return result;
     }
 
-    private JsonNode getConfigResponse(String fullUrl) {
-        HttpGet request = new HttpGet(fullUrl);
-        try (CloseableHttpClient apacheClient = HttpClients.createDefault();
-             CloseableHttpResponse response = apacheClient.execute(request)) {
-            return objectMapper.readTree(response.getEntity().getContent());
+    private JsonNode getConfigResponse(String accessControlServerBaseUrl) {
+        try {
+            String res = getHttpClient(accessControlServerBaseUrl).getRequest(WELL_KNOWN_CONFIG_PATH, CONTENT_TYPE_APPLICATION_JSON_V1, String.class, 200, "Get openId configuration", false);
+            return objectMapper.readTree(res);
         } catch (Exception e) {
             throw new CxClientException("Error getting OpenID config response.", e);
         }
+    }
+
+    private CxHttpClient getHttpClient(String acBaseUrl) {
+        if (httpClient == null) {
+            httpClient = new CxHttpClient(
+                    StringUtils.appendIfMissing(acBaseUrl, "/"),
+                    config.getCxOrigin(),
+                    config.isDisableCertificateValidation(),
+                    config.isUseSSOLogin(),
+                    config.getRefreshToken(),
+                    config.isProxy(),
+                    config.getProxyConfig(),
+                    log);
+        }
+        return httpClient;
     }
 
     private static Set<String> getSupportedScopes(JsonNode response) {
@@ -88,10 +109,4 @@ public class ClientTypeResolver {
         return Optional.ofNullable(result).orElse(new HashSet<>());
     }
 
-    private static String getFullUrl(String baseUrl) {
-        String result = StringUtils.appendIfMissing(baseUrl, "/") + WELL_KNOWN_CONFIG_PATH;
-        log.debug(String.format("Using OpenID configuration URL: %s", result));
-        return result;
-
-    }
 }

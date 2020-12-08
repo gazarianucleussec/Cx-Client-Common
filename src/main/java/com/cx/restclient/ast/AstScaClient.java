@@ -456,7 +456,7 @@ public class AstScaClient extends AstClient implements Scanner {
                 .tenant(scaConfig.getTenant())
                 .build();
 
-        ClientTypeResolver resolver = new ClientTypeResolver();
+        ClientTypeResolver resolver = new ClientTypeResolver(config);
         ClientType clientType = resolver.determineClientType(acUrl);
         settings.setClientTypeForPasswordAuth(clientType);
 

@@ -24,15 +24,15 @@ public abstract class HttpClientHelper {
     }
 
     public static <T> T convertToObject(HttpResponse response, Class<T> responseType, boolean isCollection) throws IOException, CxClientException {
-      
-        if(responseType != null && responseType.isInstance(response)) {
+
+        if (responseType != null && responseType.isInstance(response)) {
             return (T) response;
         }
-          
+
         // If the caller is asking for the whole response, return the response (instead of just its entity),
         // no matter if the entity is empty.
         if (responseType != null && responseType.isAssignableFrom(response.getClass())) {
-            return (T)response;
+            return (T) response;
         }
 
         //No content
@@ -59,6 +59,9 @@ public abstract class HttpClientHelper {
                 return null;
             }
             String json = IOUtils.toString(response.getEntity().getContent(), Charset.defaultCharset());
+            if (valueType.equals(String.class)) {
+                return (T) json;
+            }
             return mapper.readValue(json, valueType);
 
         } catch (IOException e) {

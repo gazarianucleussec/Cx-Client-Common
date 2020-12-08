@@ -1,5 +1,6 @@
 package com.cx.restclient.ast;
 
+import com.cx.restclient.configuration.CxScanConfig;
 import com.cx.restclient.exception.CxClientException;
 import com.cx.restclient.general.CommonClientTest;
 import com.cx.restclient.osa.dto.ClientType;
@@ -35,7 +36,7 @@ public class ClientTypeResolverTest extends CommonClientTest {
     }
 
     private static void checkThatExceptionIsThrown(String url) {
-        ClientTypeResolver resolver = new ClientTypeResolver();
+        ClientTypeResolver resolver = new ClientTypeResolver(new CxScanConfig());
         try {
             resolver.determineClientType(url);
             Assert.fail("Expected exception, but didn't get any.");
@@ -47,7 +48,7 @@ public class ClientTypeResolverTest extends CommonClientTest {
     }
 
     private void testDetermineClientType(String urlPropName) {
-        ClientTypeResolver resolver = new ClientTypeResolver();
+        ClientTypeResolver resolver = new ClientTypeResolver(new CxScanConfig());
         ClientType clientType = resolver.determineClientType(prop(urlPropName));
         Assert.assertNotNull("Client type is null.", clientType);
         Assert.assertTrue("Client ID is empty.", StringUtils.isNotEmpty(clientType.getClientId()));
