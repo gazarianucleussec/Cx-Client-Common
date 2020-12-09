@@ -29,7 +29,6 @@ public class Zipper {
         assert baseDir != null : "baseDir must not be null";
         assert outputStream != null : "outputStream must not be null";
 
-        filterIncludePatterns = ArrayUtils.contains(filterIncludePatterns, "**/*") ? filterIncludePatterns : ArrayUtils.add(filterIncludePatterns, "**/*");
         DirectoryScanner ds = createDirectoryScanner(baseDir, filterIncludePatterns, filterExcludePatterns);
         ds.scan();
         printDebug(ds);
