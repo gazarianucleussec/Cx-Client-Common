@@ -52,6 +52,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
     private static final String SCAN_ID_PATH_PARAM = "{scanId}";
     private static final String PROJECT_ID_PATH_PARAM = "{projectId}";
     private static final String SCAN_WITH_SETTINGS_URL = "sast/scanWithSettings";
+    private static final String ENGINE_CONFIGURATION_ID_DEFAULT = "0";
     private long scanId;
     private SASTResults sastResults = new SASTResults();
     private static final String SWAGGER_LOCATION = "help/swagger/docs/v1.1";
@@ -602,7 +603,7 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         builder.addTextBody("forceScan", config.getForceScan().toString() , ContentType.APPLICATION_JSON);
         builder.addTextBody("presetId", config.getPresetId().toString() , ContentType.APPLICATION_JSON);
         builder.addTextBody("comment", config.getScanComment()==null?"":config.getScanComment() , ContentType.APPLICATION_JSON);
-        builder.addTextBody("engineConfigurationId", config.getEngineConfigurationId().toString() , ContentType.APPLICATION_JSON);
+        builder.addTextBody("engineConfigurationId", config.getEngineConfigurationId()!=null?config.getEngineConfigurationId().toString():ENGINE_CONFIGURATION_ID_DEFAULT , ContentType.APPLICATION_JSON);
         HttpEntity entity = builder.build();
         return httpClient.postRequest(SCAN_WITH_SETTINGS_URL, null, new BufferedHttpEntity(entity), ScanWithSettingsResponse.class, 201, "upload ZIP file");
     }
