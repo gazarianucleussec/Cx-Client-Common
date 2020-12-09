@@ -29,7 +29,6 @@ public class Zipper {
         assert baseDir != null : "baseDir must not be null";
         assert outputStream != null : "outputStream must not be null";
 
-        //   filterIncludePatterns = ArrayUtils.contains(filterIncludePatterns, "**/*") ? filterIncludePatterns : ArrayUtils.add(filterIncludePatterns, "**/*");
         DirectoryScanner ds = createDirectoryScanner(baseDir, filterIncludePatterns, filterExcludePatterns);
         ds.scan();
         printDebug(ds);
@@ -37,9 +36,8 @@ public class Zipper {
             outputStream.close();
             log.info("No files to zip");
             throw new NoFilesToZip();
-        } else {
-            zipFile(baseDir, ds.getIncludedFiles(), outputStream, maxZipSize, listener);
         }
+        zipFile(baseDir, ds.getIncludedFiles(), outputStream, maxZipSize, listener);
     }
 
     private void zipFile(File baseDir, String[] files, OutputStream outputStream, long maxZipSize, ZipListener listener) throws IOException {
