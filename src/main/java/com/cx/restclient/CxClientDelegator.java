@@ -13,7 +13,6 @@ import com.cx.restclient.dto.ScannerType;
 import com.cx.restclient.osa.dto.OSAResults;
 import com.cx.restclient.sast.dto.SASTResults;
 import com.cx.restclient.sast.utils.State;
-import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 
 import java.net.MalformedURLException;
@@ -141,7 +140,7 @@ public class CxClientDelegator implements Scanner {
 
             boolean hasSastPolicies = false;
 
-            if (sastResults != null && CollectionUtils.isNotEmpty(sastResults.getSastPolicies())) {
+            if (sastResults != null && sastResults.getSastPolicies() != null && !sastResults.getSastPolicies().isEmpty()) {
                 hasSastPolicies = true;
             }
 
