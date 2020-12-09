@@ -601,6 +601,8 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         builder.addTextBody("isPublic", config.getPublic().toString() , ContentType.APPLICATION_JSON);
         builder.addTextBody("forceScan", config.getForceScan().toString() , ContentType.APPLICATION_JSON);
         builder.addTextBody("presetId", config.getPresetId().toString() , ContentType.APPLICATION_JSON);
+        builder.addTextBody("comment", config.getScanComment()==null?"":config.getScanComment() , ContentType.APPLICATION_JSON);
+        builder.addTextBody("engineConfigurationId", config.getEngineConfigurationId().toString() , ContentType.APPLICATION_JSON);
         HttpEntity entity = builder.build();
         return httpClient.postRequest(SCAN_WITH_SETTINGS_URL, null, new BufferedHttpEntity(entity), ScanWithSettingsResponse.class, 201, "upload ZIP file");
     }
