@@ -42,6 +42,7 @@ public abstract class LegacyClient {
     private String teamPath;
     protected long projectId;
     private State state = State.SUCCESS;
+    private static boolean isNewProject = false;
 
     public LegacyClient(CxScanConfig config, Logger log) throws MalformedURLException {
         this.config = config;
@@ -60,6 +61,14 @@ public abstract class LegacyClient {
         }
     }
 
+    public static boolean isIsNewProject() {
+        return isNewProject;
+    }
+
+    public static void setIsNewProject(boolean isNewProject) {
+        LegacyClient.isNewProject = isNewProject;
+    }
+
     public long resolveProjectId() throws IOException {
         List<Project> projects = getProjectByName(config.getProjectName(), config.getTeamId(), teamPath);
 
@@ -70,9 +79,10 @@ public abstract class LegacyClient {
             //Create newProject
             CreateProjectRequest request = new CreateProjectRequest(config.getProjectName(), config.getTeamId(), config.getPublic());
             projectId = createNewProject(request, teamPath).getId();
-
+            setIsNewProject(true);
         } else {
             projectId = projects.get(0).getId();
+            setIsNewProject(false);
         }
 
         return projectId;
