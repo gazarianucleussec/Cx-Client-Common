@@ -42,7 +42,7 @@ public abstract class LegacyClient {
     private String teamPath;
     protected long projectId;
     private State state = State.SUCCESS;
-    private static boolean isNewProject = false;
+    private boolean isNewProject = false;
 
     public LegacyClient(CxScanConfig config, Logger log) throws MalformedURLException {
         this.config = config;
@@ -61,12 +61,12 @@ public abstract class LegacyClient {
         }
     }
 
-    public static boolean isIsNewProject() {
+    public  boolean isIsNewProject() {
         return isNewProject;
     }
 
-    public static void setIsNewProject(boolean isNewProject) {
-        LegacyClient.isNewProject = isNewProject;
+    public void setIsNewProject(boolean isNewProject) {
+        this.isNewProject = isNewProject;
     }
 
     public long resolveProjectId() throws IOException {
