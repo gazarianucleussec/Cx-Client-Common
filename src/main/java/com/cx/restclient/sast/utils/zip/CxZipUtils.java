@@ -21,12 +21,12 @@ public abstract class CxZipUtils {
     public synchronized static byte[] getZippedSources(CxScanConfig config, PathFilter filter, String sourceDir, Logger log) throws IOException {
         byte[] zipFile = config.getZipFile() != null ? FileUtils.readFileToByteArray(config.getZipFile()) : null;
         if (zipFile == null) {
-            log.info("Zipping sources");
+            log.debug("----------------------------------- Start zipping files :------------------------------------");
             Long maxZipSize = config.getMaxZipSize() != null ? config.getMaxZipSize() * 1024 * 1024 : MAX_ZIP_SIZE_BYTES;
 
             CxZip cxZip = new CxZip(TEMP_FILE_NAME_TO_ZIP, maxZipSize, log);
             zipFile = cxZip.zipWorkspaceFolder(new File(sourceDir), filter);
-            log.debug("The sources were zipped successfully");
+            log.debug("----------------------------------- Finish zipping files :------------------------------------");
         }
         return zipFile;
     }

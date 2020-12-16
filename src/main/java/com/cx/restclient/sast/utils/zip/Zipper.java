@@ -37,9 +37,8 @@ public class Zipper {
             log.debug("No files to zip");
             throw new NoFilesToZip();
         }
-        log.debug("----------------------------------- Start zipping files :------------------------------------");
+
         zipFile(baseDir, ds.getIncludedFiles(), outputStream, maxZipSize, listener);
-        log.debug("----------------------------------- Finish zipping files :------------------------------------");
     }
 
     private void zipFile(File baseDir, String[] files, OutputStream outputStream, long maxZipSize, ZipListener listener) throws IOException {
