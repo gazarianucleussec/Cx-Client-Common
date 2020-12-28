@@ -302,7 +302,7 @@ public class AstScaClient extends AstClient implements Scanner {
             return result;
         }
         File tempFile = getZipFile();
-        log.info("Collecting files to zip archive: {}", tempFile.getAbsolutePath());
+        log.debug("Collecting files to zip archive: {}", tempFile.getAbsolutePath());
         long maxZipSizeBytes = config.getMaxZipSize() != null ? config.getMaxZipSize() * 1024 * 1024 : MAX_ZIP_SIZE_BYTES;
 
         try (NewCxZipFile zipper = new NewCxZipFile(tempFile, maxZipSizeBytes, log)) {
@@ -313,7 +313,7 @@ public class AstScaClient extends AstClient implements Scanner {
             if (!fingerprints.getFingerprints().isEmpty()) {
                 zipper.zipContentAsFile(FINGERPRINT_FILE_NAME, FingerprintCollector.getFingerprintsAsJsonString(fingerprints).getBytes());
             } else {
-                log.info("No supported fingerprints found to zip");
+                log.debug("No supported fingerprints found to zip");
             }
 
             log.debug("The sources were zipped to {}", tempFile.getAbsolutePath());
