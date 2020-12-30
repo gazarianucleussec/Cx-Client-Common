@@ -22,7 +22,7 @@ public abstract class CxZipUtils {
 
     public static final Logger log = LoggerFactory.getLogger(CxZipUtils.class);
 
-    public synchronized static byte[] getZippedSources(CxScanConfig config, PathFilter filter, String sourceDir) throws IOException {
+    public static byte[] getZippedSources(CxScanConfig config, PathFilter filter, String sourceDir) throws IOException {
         byte[] zipFile = config.getZipFile() != null ? FileUtils.readFileToByteArray(config.getZipFile()) : null;
         if (zipFile == null) {
             log.info("Zipping sources");

@@ -85,6 +85,7 @@ public abstract class OSAUtils {
         }
 
         ret.put("archiveExtractionDepth", StringUtils.isNotEmpty(osaScanDepth) ? osaScanDepth : "4");
+        ret.put("npm.ignoreNpmLsErrors", "true");
 
         if (installBeforeScan) {
             ret.put("npm.runPreStep", "true");
