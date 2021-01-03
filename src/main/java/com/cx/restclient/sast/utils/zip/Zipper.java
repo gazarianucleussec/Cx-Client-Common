@@ -34,9 +34,10 @@ public class Zipper {
         printDebug(ds);
         if (ds.getIncludedFiles().length == 0) {
             outputStream.close();
-            log.info("No files to zip");
+            log.debug("No files to zip");
             throw new NoFilesToZip();
         }
+
         zipFile(baseDir, ds.getIncludedFiles(), outputStream, maxZipSize, listener);
     }
 
@@ -51,12 +52,12 @@ public class Zipper {
 
                 File file = new File(baseDir, fileName);
                 if (!file.canRead()) {
-                    log.warn("Skipping unreadable file: " + file);
+                    log.debug("Skipping unreadable file: " + file);
                     continue;
                 }
 
                 if (maxZipSize > 0 && compressedSize + (file.length() / AVERAGE_ZIP_COMPRESSION_RATIO) > maxZipSize) {
-                    log.info("Maximum zip file size reached. Zip size: " + compressedSize + " bytes Limit: " + maxZipSize + " bytes");
+                    log.debug("Maximum zip file size reached. Zip size: " + compressedSize + " bytes Limit: " + maxZipSize + " bytes");
                     zipOutputStream.close();
                     throw new MaxZipSizeReached(compressedSize, maxZipSize);
                 }

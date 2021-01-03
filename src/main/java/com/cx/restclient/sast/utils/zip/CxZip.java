@@ -24,12 +24,12 @@ public class CxZip {
     }
 
     public byte[] zipWorkspaceFolder(File baseDir, PathFilter filter) throws IOException {
-        log.info("Zipping workspace: '" + baseDir + "'");
+        log.debug("Zipping workspace: '" + baseDir + "'");
 
         ZipListener zipListener = new ZipListener() {
             public void updateProgress(String fileName, long size) {
                 numOfZippedFiles++;
-                log.info("Zipping (" + FileUtils.byteCountToDisplaySize(size) + "): " + fileName);
+                log.debug("Zipping (" + FileUtils.byteCountToDisplaySize(size) + "): " + fileName);
             }
         };
 
@@ -43,7 +43,7 @@ public class CxZip {
                 throw new IOException("No files to zip");
             }
 
-            log.info("Zipping complete with " + numOfZippedFiles + " files, total compressed size: " +
+            log.debug("Zipping complete with " + numOfZippedFiles + " files, total compressed size: " +
                     FileUtils.byteCountToDisplaySize(byteArrayOutputStream.size()));
 
             zipFileBA = byteArrayOutputStream.toByteArray();
