@@ -268,19 +268,16 @@ public abstract class AstClient {
         log.info("Uploading the zipped data.");
 
         HttpEntity request = new ByteArrayEntity(source);
-
-        String prevUri = httpClient.getRootUri();
+        String baseAstUri = httpClient.getRootUri();
         httpClient.setRootUri(uploadUrl);
 
         try {
             // Relative path is empty, because we use the whole upload URL as the base URL for the HTTP client.
             // Content type is empty, because the server at uploadUrl throws an error if Content-Type is non-empty.
             httpClient.putRequest("", "", request, JsonNode.class, HttpStatus.SC_OK, "upload ZIP file");
-        }catch(Exception e){
-            throw e;
         }
         finally {
-            httpClient.setRootUri(prevUri);
+            httpClient.setRootUri(baseAstUri);
         }
         
         
