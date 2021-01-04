@@ -162,6 +162,14 @@ public class CxHttpClient implements Closeable {
         else apacheClient = cb.build();
 }
 
+    public void setRootUri(String rootUri) {
+        this.rootUri = rootUri;
+    }
+
+    public String getRootUri() {
+        return rootUri;
+    }
+
     @Deprecated
     public CxHttpClient(String rootUri, String origin, boolean disableSSLValidation, boolean isSSO, String refreshToken,
                         @Nullable ProxyConfig proxyConfig, Logger log) throws CxClientException {
