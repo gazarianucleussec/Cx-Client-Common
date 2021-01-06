@@ -215,14 +215,19 @@ public class AstScaClient extends AstClient implements Scanner {
     @Override
     protected void uploadArchive(byte[] source, String uploadUrl) throws IOException {
         log.info("Uploading the zipped data.");
-
+        CxHttpClient uploader = null;
         HttpEntity request = new ByteArrayEntity(source);
 
-        CxHttpClient uploader = createHttpClient(uploadUrl);
+        try {
+            uploader = createHttpClient(uploadUrl);
 
-        // Relative path is empty, because we use the whole upload URL as the base URL for the HTTP client.
-        // Content type is empty, because the server at uploadUrl throws an error if Content-Type is non-empty.
-        uploader.putRequest("", "", request, JsonNode.class, HttpStatus.SC_OK, "upload ZIP file");
+            // Relative path is empty, because we use the whole upload URL as the base URL for the HTTP client.
+            // Content type is empty, because the server at uploadUrl throws an error if Content-Type is non-empty.
+            uploader.putRequest("", "", request, JsonNode.class, HttpStatus.SC_OK, "upload ZIP file");
+        }finally {
+            Optional.ofNullable(uploader).ifPresent(CxHttpClient::close);
+        }
+
     }
     
     @Override
