@@ -18,14 +18,11 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.InputStreamBody;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -458,17 +455,42 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         httpClient.putRequest(String.format(SAST_EXCLUDE_FOLDERS_FILES_PATTERNS, projectId), CONTENT_TYPE_APPLICATION_JSON_V1, entity, null, 200, "exclude project's settings");
     }
 
+/*    private void uploadZipFileForSASTScan(int projectId, byte[] zipFile) throws CxClientException {
+        HttpResponse response = null;
+        HttpUriRequest postRequest;
+
+        try {
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+            builder.addBinaryBody("zippedSource", zipFile);
+            HttpEntity multipart = builder.build();
+            postRequest = RequestBuilder.post()
+                    .setUri(String.valueOf(SastResourceURIBuilder.buildUploadZipFileURL(new URL(hostName), projectId)))
+                    .setConfig(RequestConfig.custom().setConnectTimeout(30 * 1000).build())
+                    .setHeader(authHeader)
+                    .setEntity(multipart)
+                    .build();
+            log.info("Uploading zipped source files to server, please wait.");
+            response = genHttpClientBuilder().setConnectionReuseStrategy(new NoConnectionReuseStrategy())
+                    .useSystemProperties().build().execute(postRequest);
+
+            validateClientResponse(response, 204, "Failed to upload zip file for SAST scan");
+            log.info("Zipped source files were uploaded successfully");
+        } catch (IOException | CxHTTPClientException e) {
+            throw new CxClientException("Failed to upload zip file for SAST scan: " + e.getMessage());
+        } finally {
+            HttpClientUtils.closeQuietly(response);
+        }
+    }*/
+
     private void uploadZipFile(byte[] zipFile, long projectId) throws CxClientException, IOException {
         log.info("Uploading zip file");
 
-        try (InputStream is = new ByteArrayInputStream(zipFile)) {
-            InputStreamBody streamBody = new InputStreamBody(is, ContentType.APPLICATION_OCTET_STREAM, "zippedSource");
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-            builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-            builder.addPart("zippedSource", streamBody);
-            HttpEntity entity = builder.build();
-            httpClient.postRequest(SAST_ZIP_ATTACHMENTS.replace(PROJECT_ID_PATH_PARAM, Long.toString(projectId)), null, new BufferedHttpEntity(entity), null, 204, "upload ZIP file");
-        }
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+        builder.addBinaryBody("zippedSource", zipFile);
+        HttpEntity entity = builder.build();
+        httpClient.postRequest(SAST_ZIP_ATTACHMENTS.replace(PROJECT_ID_PATH_PARAM, Long.toString(projectId)), null, new BufferedHttpEntity(entity), null, 204, "upload ZIP file");
     }
 
     private long createScan(long projectId) throws IOException {
@@ -555,6 +577,40 @@ public class CxSASTClient extends LegacyClient implements Scanner {
             throw new CxClientException("SAST scan cannot be completed.");
         }
     }
+
+/*    private static void validateClientResponse(HttpResponse response, int status, String message) throws CxHTTPClientException {
+        try {
+            if (response.getStatusLine().getStatusCode() != status) {
+                String responseBody = IOUtils.toString(response.getEntity().getContent(), Charset.defaultCharset());
+                if (responseBody.contains("<!DOCTYPE html PUBLIC \"")) {
+                    responseBody = "No error message";
+                }
+                throw new CxHTTPClientException(message + ": " + "status code: " + response.getStatusLine().getStatusCode() + ". Error message:" + responseBody);
+            }
+        } catch (IOException e) {
+            throw new CxHTTPClientException("Error parse REST response body: " + e.getMessage());
+        }
+    }
+
+    private static HttpClientBuilder genHttpClientBuilder() {
+        try {
+            return HttpClients.custom().setSSLSocketFactory(getSSLSF());
+        } catch (CxHTTPClientException e) {
+            log.error("[CX-CLI] Fail to set SSL context", e);
+        }
+        return HttpClients.custom();
+    }
+
+    private static SSLConnectionSocketFactory getSSLSF() throws CxHTTPClientException {
+        TrustStrategy acceptingTrustStrategy = new TrustAllStrategy();
+        SSLContext sslContext;
+        try {
+            sslContext = SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
+        } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
+            throw new CxHTTPClientException("Fail to set trust all certificate, 'SSLConnectionSocketFactory'", e);
+        }
+        return new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
+    }*/
 
     @Override
     public Results initiateScan() {
