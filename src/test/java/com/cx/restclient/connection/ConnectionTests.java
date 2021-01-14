@@ -30,7 +30,7 @@ public class ConnectionTests {
     public void ssoConnectionTest() {
         CxScanConfig config = initConfig();
         try {
-            client = new CxShragaClient(config, log);
+            client = new CxShragaClient(config, true, log);
             client.init();
         } catch (IOException | CxClientException e) {
             e.printStackTrace();

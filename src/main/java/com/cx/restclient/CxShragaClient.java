@@ -50,7 +50,7 @@ public class CxShragaClient {
     private OSAResults osaResults = new OSAResults();
 
     public CxShragaClient(CxScanConfig config, Logger log, String proxyHost, int proxyPort,
-                          String proxyUser, String proxyPassword) throws MalformedURLException, CxClientException {
+                          String proxyUser, String proxyPassword, boolean isProxy) throws MalformedURLException, CxClientException {
         this.config = config;
         this.log = log;
         this.httpClient = new CxHttpClient(
@@ -62,12 +62,12 @@ public class CxShragaClient {
                 config.isUseSSOLogin(),
                 config.getRefreshToken(),
                 log,
-                proxyHost, proxyPort, proxyUser, proxyPassword);
+                isProxy, proxyHost, proxyPort, proxyUser, proxyPassword);
         sastClient = new CxSASTClient(httpClient, log, config);
         osaClient = new CxOSAClient(httpClient, log, config);
     }
 
-    public CxShragaClient(CxScanConfig config, Logger log) throws MalformedURLException, CxClientException {
+    public CxShragaClient(CxScanConfig config, boolean isProxy, Logger log) throws MalformedURLException, CxClientException {
         this.config = config;
         this.log = log;
         this.httpClient = new CxHttpClient(
@@ -78,18 +78,19 @@ public class CxShragaClient {
                 config.isDisableCertificateValidation(),
                 config.isUseSSOLogin(),
                 config.getRefreshToken(),
+                isProxy,
                 log);
         sastClient = new CxSASTClient(httpClient, log, config);
         osaClient = new CxOSAClient(httpClient, log, config);
     }
 
     public CxShragaClient(String serverUrl, String username, String password, String origin, boolean disableCertificateValidation,
-                          Logger log, String proxyHost, int proxyPort, String proxyUser, String proxyPassword) throws MalformedURLException, CxClientException {
-        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), log, proxyHost, proxyPort, proxyUser, proxyPassword);
+                          Logger log, boolean isProxy, String proxyHost, int proxyPort, String proxyUser, String proxyPassword) throws MalformedURLException, CxClientException {
+        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), log, proxyHost, proxyPort, proxyUser, proxyPassword, isProxy);
     }
 
-    public CxShragaClient(String serverUrl, String username, String password, String origin, boolean disableCertificateValidation, Logger log) throws MalformedURLException, CxClientException {
-        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), log);
+    public CxShragaClient(String serverUrl, String username, String password, String origin, boolean disableCertificateValidation, boolean isProxy, Logger log) throws MalformedURLException, CxClientException {
+        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), isProxy, log);
     }
 
     //API Scans methods
@@ -220,12 +221,10 @@ public class CxShragaClient {
         httpClient.login(version);
     }
 
-        public void login() throws IOException {
-            String version = getCxVersion();
-            login(version);
-        }
-
-
+    public void login() throws IOException {
+        String version = getCxVersion();
+        login(version);
+    }
 
 
     public String getToken() throws IOException, CxClientException {
@@ -248,7 +247,7 @@ public class CxShragaClient {
                 }
             } catch (Exception ex) {
             }
-            version=config.getCxVersion().getVersion();
+            version = config.getCxVersion().getVersion();
             log.info("Checkmarx server version [" + config.getCxVersion().getVersion() + "]." + hotfix);
 
         } catch (Exception ex) {
@@ -307,12 +306,12 @@ public class CxShragaClient {
 
         List<Team> teamList = populateTeamList();
         //If there is no chosen teamPath, just add first one from the teams list as default
-        if(StringUtils.isEmpty(this.teamPath) && teamList!=null && !teamList.isEmpty()){
-            this.teamPath= teamList.get(0).getFullName();
+        if (StringUtils.isEmpty(this.teamPath) && teamList != null && !teamList.isEmpty()) {
+            this.teamPath = teamList.get(0).getFullName();
         }
         httpClient.setTeamPathHeader(this.teamPath);
         log.debug("getTeamList setTeamPathHeader " + this.teamPath);
-        return  teamList;
+        return teamList;
     }
 
     public Preset getPresetById(int presetId) throws IOException, CxClientException {
@@ -373,7 +372,7 @@ public class CxShragaClient {
 
     private void printTeamPath() {
         try {
-             this.teamPath = config.getTeamPath();
+            this.teamPath = config.getTeamPath();
             if (teamPath == null) {
                 this.teamPath = getTeamNameById(config.getTeamId());
             }

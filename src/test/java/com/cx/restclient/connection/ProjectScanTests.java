@@ -14,10 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Properties;
 
 @Ignore
@@ -37,7 +35,7 @@ public class ProjectScanTests {
     @Test
     public void runOsaScan() throws MalformedURLException, CxClientException {
         CxScanConfig config = initOsaConfig();
-        client = new CxShragaClient(config, log);
+        client = new CxShragaClient(config, true, log);
         try {
             client.init();
             client.createOSAScan();
@@ -54,7 +52,7 @@ public class ProjectScanTests {
     @Test
     public void runSastScan() throws MalformedURLException, CxClientException {
         CxScanConfig config = initSastConfig();
-        client = new CxShragaClient(config, log);
+        client = new CxShragaClient(config, true, log);
         try {
             client.init();
             client.createSASTScan();

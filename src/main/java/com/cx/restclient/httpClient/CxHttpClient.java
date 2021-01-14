@@ -99,7 +99,7 @@ public class CxHttpClient {
     HttpClientBuilder cb = HttpClients.custom();
 
     public CxHttpClient(String hostname, String username, String password, String origin,
-                        boolean disableSSLValidation, boolean isSSO, String refreshToken, Logger logi,
+                        boolean disableSSLValidation, boolean isSSO, String refreshToken, Logger logi, boolean isProxy,
                         String proxyHost, int proxyPort, String proxyUser, String proxyPassword) throws MalformedURLException, CxClientException {
         this.log = logi;
         this.username = username;
@@ -122,10 +122,12 @@ public class CxHttpClient {
         }
         cb.setConnectionManagerShared(true);
 
-        if (proxyHost != null) {
-            setCustomProxy(cb, proxyHost, proxyPort, proxyUser, proxyPassword, logi);
-        } else {
-            setProxy(cb, logi);
+        if (isProxy) {
+            if (proxyHost != null) {
+                setCustomProxy(cb, proxyHost, proxyPort, proxyUser, proxyPassword, logi);
+            } else {
+                setProxy(cb, logi);
+            }
         }
 
         if (useSSo) {
@@ -135,13 +137,12 @@ public class CxHttpClient {
             cb.setConnectionReuseStrategy(new NoConnectionReuseStrategy());
         }
         cb.setDefaultAuthSchemeRegistry(getAuthSchemeProviderRegistry());
-        cb.useSystemProperties();
         apacheClient = cb.build();
     }
 
-    public CxHttpClient(String hostname, String username, String password, String origin,
-                        boolean disableSSLValidation, boolean isSSO, String refreshToken, Logger logi) throws MalformedURLException, CxClientException {
-        this(hostname, username, password, origin, disableSSLValidation, isSSO, refreshToken, logi, null, 0, null, null);
+    public CxHttpClient(String hostname, String username, String password, String origin, boolean disableSSLValidation,
+                        boolean isSSO, String refreshToken, boolean isProxy, Logger logi) throws MalformedURLException, CxClientException {
+        this(hostname, username, password, origin, disableSSLValidation, isSSO, refreshToken, logi, isProxy, null, 0, null, null);
     }
 
     private static void setCustomProxy(HttpClientBuilder cb, String proxyHost, int proxyPort, String proxyUser, String proxyPassword, Logger logi) {
@@ -227,9 +228,9 @@ public class CxHttpClient {
         if (refreshToken != null) {
             token = getAccessTokenFromRefreshToken();
         } else if (useSSo) {
-            if(version == "lower than 9.0"){
+            if (version == "lower than 9.0") {
                 ssoLegacyLogin();
-            }else{
+            } else {
                 token = ssoLogin();
             }
         } else {
@@ -455,7 +456,8 @@ public class CxHttpClient {
         HttpPatch patch = new HttpPatch(rootUri + relPath);
         request(patch, contentType, entity, null, expectStatus, failedMsg, false, true);
     }
-    public void setTeamPathHeader(String teamPath){
+
+    public void setTeamPathHeader(String teamPath) {
         this.teamPath = teamPath;
     }
 
