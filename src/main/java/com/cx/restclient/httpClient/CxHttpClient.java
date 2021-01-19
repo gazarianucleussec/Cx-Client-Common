@@ -98,7 +98,7 @@ public class CxHttpClient implements Closeable {
     private final String refreshToken;
     private String cxOrigin;
     private String cxOriginUrl;
-    
+
     private Boolean useSSo;
     private Boolean useNTLM;
     private LoginSettings lastLoginSettings;
@@ -169,6 +169,14 @@ public class CxHttpClient implements Closeable {
 		this(rootUri,origin ,disableSSLValidation, isSSO, refreshToken, isProxy,proxyConfig, log , useNTLM);
 		this.cxOriginUrl = originUrl;
 	}
+
+    public void setRootUri(String rootUri) {
+        this.rootUri = rootUri;
+    }
+
+    public String getRootUri() {
+        return rootUri;
+    }
 
     @Deprecated
     public CxHttpClient(String rootUri, String origin, boolean disableSSLValidation, boolean isSSO, String refreshToken,
@@ -620,7 +628,6 @@ public class CxHttpClient implements Closeable {
 
         try {
             httpMethod.addHeader(ORIGIN_HEADER, cxOrigin);
-            httpMethod.addHeader(ORIGIN_URL_HEADER, cxOriginUrl);
             httpMethod.addHeader(TEAM_PATH, this.teamPath);
             if (token != null) {
                 httpMethod.addHeader(HttpHeaders.AUTHORIZATION, token.getToken_type() + " " + token.getAccess_token());
