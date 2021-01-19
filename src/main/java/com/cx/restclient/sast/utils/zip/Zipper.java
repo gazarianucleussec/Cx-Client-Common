@@ -70,9 +70,8 @@ public class Zipper {
                 zipOutputStream.putNextEntry(zipEntry);
                 try (FileInputStream fileInputStream = new FileInputStream(file)) {
                     IOUtils.copy(fileInputStream, zipOutputStream);
-                } finally {
-                    zipOutputStream.closeEntry();
                 }
+                zipOutputStream.closeEntry();
                 compressedSize += zipEntry.getCompressedSize();
             }
         }
