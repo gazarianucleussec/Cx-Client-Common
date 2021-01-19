@@ -68,11 +68,11 @@ public class Zipper {
 
                 ZipEntry zipEntry = new ZipEntry(fileName);
                 zipOutputStream.putNextEntry(zipEntry);
-
-                FileInputStream fileInputStream = new FileInputStream(file);
-                IOUtils.copy(fileInputStream, zipOutputStream);
-                fileInputStream.close();
-                zipOutputStream.closeEntry();
+                try (FileInputStream fileInputStream = new FileInputStream(file)) {
+                    IOUtils.copy(fileInputStream, zipOutputStream);
+                } finally {
+                    zipOutputStream.closeEntry();
+                }
                 compressedSize += zipEntry.getCompressedSize();
             }
         }
