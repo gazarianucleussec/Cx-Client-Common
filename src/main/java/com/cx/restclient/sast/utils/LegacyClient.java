@@ -151,6 +151,7 @@ public abstract class LegacyClient {
             httpClient = new CxHttpClient(
                     UrlUtils.parseURLToString(config.getUrl(), "CxRestAPI/"),
                     config.getCxOrigin(),
+                    config.getCxOriginUrl(),
                     config.isDisableCertificateValidation(),
                     config.isUseSSOLogin(),
                     config.getRefreshToken(),
