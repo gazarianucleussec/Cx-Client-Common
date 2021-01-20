@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.checkmarx</groupId>
     <artifactId>cx-client-common</artifactId>
-    <version>${cxcommon.version}</version>
+    <version>2020.4.108-SEG</version>
     <packaging>jar</packaging>
     <name>Checkmarx Client</name>
     <description>Web client for interaction with Checkmarx SAST, SCA and OSA products</description>
@@ -14,7 +14,7 @@
         <developerConnection>scm:git:ssh://github.com/checkmarx-ltd/Cx-Client-Common.git</developerConnection>
         <url>https://github.com/checkmarx-ltd/Cx-Client-Common/tree/master</url>
     </scm>
-         <!-- Trigger-->
+    <!-- Trigger-->
     <licenses>
         <license>
             <name>MIT License</name>
@@ -108,13 +108,9 @@
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.21</version>
-        </dependency>
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.5</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.freemarker</groupId>
@@ -188,6 +184,10 @@
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
                     <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
                 </exclusion>
                 <exclusion>
                     <artifactId>bcpg-jdk15on</artifactId>
