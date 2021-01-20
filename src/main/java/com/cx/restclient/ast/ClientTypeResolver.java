@@ -89,6 +89,7 @@ public class ClientTypeResolver {
             httpClient = new CxHttpClient(
                     StringUtils.appendIfMissing(acBaseUrl, "/"),
                     config.getCxOrigin(),
+                    config.getCxOriginUrl(),
                     config.isDisableCertificateValidation(),
                     config.isUseSSOLogin(),
                     config.getRefreshToken(),

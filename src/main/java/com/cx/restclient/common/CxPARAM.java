@@ -24,6 +24,7 @@ public abstract class CxPARAM {
     public static final String CX_REPORT_LOCATION = File.separator + "Checkmarx" + File.separator + "Reports";
 
     public static final String ORIGIN_HEADER = "cxOrigin";
+    public static final String ORIGIN_URL_HEADER = "cxOriginUrl";
     public static final String CSRF_TOKEN_HEADER = "CXCSRFToken";
     public static final String PROJECT_POLICY_VIOLATED_STATUS = "Project policy status : violated";
     public static final String PROJECT_POLICY_COMPLIANT_STATUS = "Project policy status : compliant";

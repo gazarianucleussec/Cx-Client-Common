@@ -17,6 +17,7 @@ import java.util.*;
 public class CxScanConfig implements Serializable {
 
     private String cxOrigin;
+    private String cxOriginUrl;
     private CxVersion cxVersion;
 
     private boolean disableCertificateValidation = false;
@@ -126,7 +127,16 @@ public class CxScanConfig implements Serializable {
         this.cxOrigin = cxOrigin;
         this.disableCertificateValidation = disableCertificateValidation;
     }
-
+    public CxScanConfig(String url, String username, String password, String cxOrigin, String cxOriginUrl, boolean disableCertificateValidation) {
+        this.url = url;
+        this.username = username;
+        this.password = password;
+        this.cxOrigin = cxOrigin;
+        this.cxOriginUrl = cxOriginUrl;
+        this.disableCertificateValidation = disableCertificateValidation;
+    }
+    
+    
     public CxScanConfig(String url, String refreshToken, String cxOrigin, boolean disableCertificateValidation) {
         this.url = url;
         this.refreshToken = refreshToken;
@@ -162,10 +172,18 @@ public class CxScanConfig implements Serializable {
         return cxOrigin;
     }
 
+    public String getCxOriginUrl() {
+        return cxOriginUrl;
+    }
+    
     public void setCxOrigin(String cxOrigin) {
         this.cxOrigin = cxOrigin;
     }
 
+    public void setCxOriginUrl(String cxOriginUrl) {
+        this.cxOriginUrl = cxOriginUrl;
+    } 
+    
     public boolean isDisableCertificateValidation() {
         return disableCertificateValidation;
     }
