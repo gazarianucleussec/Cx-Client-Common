@@ -26,7 +26,7 @@ public class Zipper {
     public Zipper() {
     }
 
-    public void zip(File baseDir, String[] filterIncludePatterns, String[] filterExcludePatterns, OutputStream outputStream, long maxZipSize, ZipListener listener) throws IOException {
+    public void zip(File baseDir, String[] filterIncludePatterns, String[] filterExcludePatterns, OutputStream outputStream, long maxZipSize) throws IOException {
         assert baseDir != null : "baseDir must not be null";
         assert outputStream != null : "outputStream must not be null";
 
@@ -39,10 +39,11 @@ public class Zipper {
             log.info("No files to zip");
             throw new NoFilesToZip();
         }
-        zipFile(baseDir, ds.getIncludedFiles(), outputStream, maxZipSize, listener);
+        zipFile(baseDir, ds.getIncludedFiles(), outputStream, maxZipSize);
+        return;
     }
 
-    private void zipFile(File baseDir, String[] files, OutputStream outputStream, long maxZipSize, ZipListener listener) throws IOException {
+    private void zipFile(File baseDir, String[] files, OutputStream outputStream, long maxZipSize) throws IOException {
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream)) {
             zipOutputStream.setEncoding("UTF8");
             long compressedSize = 0;
@@ -63,18 +64,15 @@ public class Zipper {
                     throw new MaxZipSizeReached(compressedSize, maxZipSize);
                 }
 
-                if (listener != null) {
-                    listener.updateProgress(fileName, compressedSize);
-                }
-
                 ZipEntry zipEntry = new ZipEntry(fileName);
                 zipOutputStream.putNextEntry(zipEntry);
 
-                FileInputStream fileInputStream = new FileInputStream(file);
-                IOUtils.copy(fileInputStream, zipOutputStream);
-                fileInputStream.close();
-                zipOutputStream.closeEntry();
-                compressedSize += zipEntry.getCompressedSize();
+                try (FileInputStream fileInputStream = new FileInputStream(file)) {
+                    IOUtils.copy(fileInputStream, zipOutputStream);
+                } finally {
+                    zipOutputStream.closeEntry();
+                    compressedSize += zipEntry.getCompressedSize();
+                }
             }
         }
     }

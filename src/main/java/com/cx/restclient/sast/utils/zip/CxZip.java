@@ -24,16 +24,10 @@ public class CxZip {
         if (!isProjectDirectoryValid(baseDir.getAbsolutePath())) {
             return;
         }
-        ZipListener zipListener = new ZipListener() {
-            public void updateProgress(String fileName, long size) {
-                numOfZippedFiles++;
-                log.info("Zipping (" + FileUtils.byteCountToDisplaySize(size) + "): " + fileName);
-            }
-        };
 
         try {
             try {
-                new Zipper().zip(baseDir, filter.getIncludes(), filter.getExcludes(), byteArrayOutputStream, maxZipSize, zipListener);
+                new Zipper().zip(baseDir, filter.getIncludes(), filter.getExcludes(), byteArrayOutputStream, maxZipSize);
             } catch (Zipper.MaxZipSizeReached e) {
                 throw new IOException("Reached maximum upload size limit of " + FileUtils.byteCountToDisplaySize(maxZipSize));
             } catch (Zipper.NoFilesToZip e) {

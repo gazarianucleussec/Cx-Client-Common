@@ -223,7 +223,11 @@ public class CxSASTClient extends LegacyClient implements Scanner {
         //prepare sources for scan
         PathFilter filter = new PathFilter(config.getSastFolderExclusions(), config.getSastFilterPattern());
         byte[] zipFile = CxZipUtils.getZippedSources(config, filter, config.getSourceDir());
-        uploadZipFile(zipFile, projectId);
+        try{
+            uploadZipFile(zipFile, projectId);
+        } finally {
+            System.gc();
+        }
 
         return createScan(projectId);
     }
