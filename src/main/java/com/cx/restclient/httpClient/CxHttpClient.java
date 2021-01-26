@@ -91,7 +91,7 @@ public class CxHttpClient {
     private String cxOrigin;
 
     public CxHttpClient(String hostname, String username, String password, String origin,
-                        boolean disableSSLValidation, Logger logi, String proxyHost, int proxyPort,
+                        boolean disableSSLValidation, Logger logi, boolean isProxy, String proxyHost, int proxyPort,
                         String proxyUser, String proxyPassword) throws MalformedURLException, CxClientException {
         this.logi = logi;
         this.username = username;
@@ -113,20 +113,21 @@ public class CxHttpClient {
             cb.setConnectionManager(getHttpConnManager(false));
         }
         cb.setConnectionManagerShared(true);
-        if (proxyHost != null) {
-            setCustomProxy(cb, proxyHost, proxyPort, proxyUser, proxyPassword, logi);
-        } else {
-            setProxy(cb, logi);
+        if (isProxy) {
+            if (proxyHost != null) {
+                setCustomProxy(cb, proxyHost, proxyPort, proxyUser, proxyPassword, logi);
+            } else {
+                setProxy(cb, logi);
+            }
         }
 
         cb.setConnectionReuseStrategy(new NoConnectionReuseStrategy());
         cb.setDefaultAuthSchemeRegistry(getAuthSchemeProviderRegistry());
-        cb.useSystemProperties();
         apacheClient = cb.build();
     }
 
-    public CxHttpClient(String hostname, String username, String password, String origin, boolean disableSSLValidation, Logger logi) throws MalformedURLException, CxClientException {
-        this(hostname, username, password, origin, disableSSLValidation, logi, null, 0, null, null);
+    public CxHttpClient(String hostname, String username, String password, String origin, boolean disableSSLValidation, boolean isProxy, Logger logi) throws MalformedURLException, CxClientException {
+        this(hostname, username, password, origin, disableSSLValidation, logi, isProxy, null, 0, null, null);
     }
 
     private static void setCustomProxy(HttpClientBuilder cb, String proxyHost, int proxyPort, String proxyUser, String proxyPassword, Logger logi) {

@@ -3,7 +3,6 @@ package com.cx.restclient.connection;
 import com.cx.restclient.CxShragaClient;
 import com.cx.restclient.configuration.CxScanConfig;
 import com.cx.restclient.exception.CxClientException;
-import com.cx.restclient.osa.dto.OSAResults;
 import com.cx.utility.TestingUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -30,7 +29,7 @@ public class ConnectionTests {
     public void ssoConnectionTest() {
         CxScanConfig config = initConfig();
         try {
-            client = new CxShragaClient(config, log);
+            client = new CxShragaClient(config, false, log);
             client.init();
         } catch (IOException | CxClientException e) {
             e.printStackTrace();

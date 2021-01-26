@@ -46,7 +46,7 @@ public class CxShragaClient {
     private SASTResults sastResults = new SASTResults();
     private OSAResults osaResults = new OSAResults();
 
-    public CxShragaClient(CxScanConfig config, Logger log, String proxyHost, int proxyPort,
+    public CxShragaClient(CxScanConfig config, Logger log, boolean isProxy ,String proxyHost, int proxyPort,
                           String proxyUser, String proxyPassword) throws MalformedURLException, CxClientException {
         this.config = config;
         this.log = log;
@@ -57,12 +57,13 @@ public class CxShragaClient {
                 config.getCxOrigin(),
                 config.isDisableCertificateValidation(),
                 log,
+                isProxy,
                 proxyHost, proxyPort, proxyUser, proxyPassword);
         sastClient = new CxSASTClient(httpClient, log, config);
         osaClient = new CxOSAClient(httpClient, log, config);
     }
 
-    public CxShragaClient(CxScanConfig config, Logger log) throws MalformedURLException, CxClientException {
+    public CxShragaClient(CxScanConfig config, boolean isProxy, Logger log) throws MalformedURLException, CxClientException {
         this.config = config;
         this.log = log;
         this.httpClient = new CxHttpClient(
@@ -71,18 +72,19 @@ public class CxShragaClient {
                 config.getPassword(),
                 config.getCxOrigin(),
                 config.isDisableCertificateValidation(),
+                isProxy,
                 log);
         sastClient = new CxSASTClient(httpClient, log, config);
         osaClient = new CxOSAClient(httpClient, log, config);
     }
 
     public CxShragaClient(String serverUrl, String username, String password, String origin, boolean disableCertificateValidation,
-                          Logger log, String proxyHost, int proxyPort, String proxyUser, String proxyPassword) throws MalformedURLException, CxClientException {
-        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), log, proxyHost, proxyPort, proxyUser, proxyPassword);
+                          Logger log, boolean isProxy, String proxyHost, int proxyPort, String proxyUser, String proxyPassword) throws MalformedURLException, CxClientException {
+        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), log, isProxy, proxyHost, proxyPort, proxyUser, proxyPassword);
     }
 
-    public CxShragaClient(String serverUrl, String username, String password, String origin, boolean disableCertificateValidation, Logger log) throws MalformedURLException, CxClientException {
-        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), log);
+    public CxShragaClient(String serverUrl, String username, String password, String origin, boolean disableCertificateValidation, boolean isProxy, Logger log) throws MalformedURLException, CxClientException {
+        this(new CxScanConfig(serverUrl, username, password, origin, disableCertificateValidation), isProxy,log);
     }
 
     //API Scans methods

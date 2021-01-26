@@ -1,5 +1,4 @@
 import com.cx.restclient.CxShragaClient;
-import com.cx.restclient.common.ShragaUtils;
 import com.cx.restclient.configuration.CxScanConfig;
 import com.cx.restclient.osa.dto.OSAResults;
 import com.cx.restclient.sast.dto.SASTResults;
@@ -32,7 +31,6 @@ public class testi {
     public static void main(String[] args) throws Exception {
 
 
-
         SASTResults sastResults = null;
         // SASTResults lastSastResults = null;
         OSAResults osaResults = null;
@@ -43,8 +41,8 @@ public class testi {
         CxScanConfig config = setConfigi();
 
 
-        CxShragaClient shraga = new CxShragaClient(config, logi);
-       // shraga.getClientVersion();
+        CxShragaClient shraga = new CxShragaClient(config, false, logi);
+        // shraga.getClientVersion();
         shraga.init();
 
         try {
@@ -80,8 +78,8 @@ public class testi {
         }
 
         //lastSastResults = shraga.getLatestSASTResults();
-     //   lastOsaResults = shraga.getLatestOSAResults();
-       if (config.getEnablePolicyViolations()) {
+        //   lastOsaResults = shraga.getLatestOSAResults();
+        if (config.getEnablePolicyViolations()) {
             shraga.printIsProjectViolated();
         }
         //String buildFailedResult = ShragaUtils.getBuildFailureResult(config, sastResults, osaResults);
@@ -96,7 +94,7 @@ public class testi {
     private static CxScanConfig setConfigi() {
         CxScanConfig config = new CxScanConfig();
         config.setSastEnabled(true);
-         config.setSourceDir("C:\\cxdev\\CxPlugins\\Bamboo-Plugin");
+        config.setSourceDir("C:\\cxdev\\CxPlugins\\Bamboo-Plugin");
         //config.setSourceDir("C:\\Users\\galn\\Desktop\\restiDir\\srcDir\\SAST\\Folder1\\Folder2\\Folder3");
         config.setReportsDir(new File("C:\\Users\\galn\\Desktop\\restiDir\\reportsDir"));
         //config.setReportsDir(new File("C:\\Users\\galn\\Desktop\\restiDir\\srcDir\\SAST\\ss"));
@@ -105,7 +103,7 @@ public class testi {
         config.setPassword("Cx@123456");
         config.setAvoidDuplicateProjectScans(false);
 
-       // config.setUrl("http://10.32.1.91");
+        // config.setUrl("http://10.32.1.91");
         config.setUrl("https://sast.checkmarx.net");
         config.setCxOrigin("common");
         config.setProjectName("Bamboo Plugin - Main");
