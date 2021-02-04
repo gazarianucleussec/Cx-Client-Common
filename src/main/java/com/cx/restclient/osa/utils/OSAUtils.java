@@ -106,7 +106,7 @@ public abstract class OSAUtils {
         ret.put("python.resolveDependencies", resolveDependencies);
         ret.put("python.ignorePipInstallErrors", resolveDependencies);
         ret.put("php.resolveDependencies", resolveDependencies);
-        ret.put("sbt.resolveDependencies", resolveDependencies);
+//        ret.put("sbt.resolveDependencies", resolveDependencies);
     }
 
     private static String getSbtTargetFolder(String sourceFolder){
