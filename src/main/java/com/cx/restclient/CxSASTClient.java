@@ -149,6 +149,10 @@ class CxSASTClient {
         log.info("Uploading zip file");
         CreateScanRequest scanRequest = new CreateScanRequest(projectId, config.getIncremental(), config.getPublic(), config.getForceScan(), config.getScanComment() == null ? "" : config.getScanComment());
         log.info("Sending SAST scan request");
+        if (config.getForceScan() && config.getIncremental()) {
+            //Force to send a full scan due to bug number 227535
+            scanRequest.setIsIncremental(false);
+        }
         CxID createScanResponse = createScan(scanRequest);
         log.info(String.format("SAST Scan created successfully. Link to project state: " + config.getUrl() + LINK_FORMAT, projectId));
 
