@@ -18,10 +18,14 @@ import org.apache.http.client.HttpResponseException;
 import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import java.util.Enumeration;
 import java.util.List;
 
 import static com.cx.restclient.common.CxPARAM.*;
@@ -183,8 +187,31 @@ public abstract class LegacyClient {
         }
     }
 
+    /**
+     *       Added for debug testing ticket number 64314
+     */
+    private void onlyForDebugPrintCertFileLocationAndAliases() {
+        try {
+            String ksPath = System.getProperty("java.home") + File.separator + "lib" + File.separator + "security" + File.separator + "cacerts";
+            log.info("Using java cert location: " + ksPath);
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            ks.load(new FileInputStream(ksPath), "changeit".toCharArray());
+            Enumeration<String> aliases = ks.aliases();
+            while(aliases.hasMoreElements()){
+               log.info("Aliases is: " + aliases.nextElement());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
     public String getCxVersion() throws IOException, CxClientException {
         String version;
+        /**
+         *       Added for debug testing ticket number 64314
+         */
+        onlyForDebugPrintCertFileLocationAndAliases();
         try {
             config.setCxVersion(httpClient.getRequest(CX_VERSION, CONTENT_TYPE_APPLICATION_JSON_V1, CxVersion.class, 200, "cx Version", false));
             String hotfix = "";
