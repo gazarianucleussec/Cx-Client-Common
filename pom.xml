@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.checkmarx</groupId>
     <artifactId>cx-client-common</artifactId>
-    <version>2020.3.6.bamboo</version>
+    <version>2020.3.8.bamboo</version>
     <packaging>jar</packaging>
     <name>Checkmarx Client</name>
     <description>Enables web services access Checkmarx SAST and OSA scan.</description>
@@ -152,7 +152,7 @@
         <dependency>
             <groupId>com.checkmarx</groupId>
             <artifactId>cx-ws-fs-agent</artifactId>
-            <version>20.0.11</version>
+            <version>20.0.12</version>
             <exclusions>
                 <exclusion>
                     <groupId>javax.xml.bind</groupId>
