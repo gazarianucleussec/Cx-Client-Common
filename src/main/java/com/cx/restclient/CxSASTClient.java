@@ -229,7 +229,8 @@ class CxSASTClient {
             if (config.getReportsDir() != null) {
                 String now = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(new Date());
                 String pdfFileName = PDF_REPORT_NAME + "_" + now + ".pdf";
-                pdfFileName = writePDFReport(pdfReport, config.getReportsDir(), pdfFileName, log);
+                String pdfLink = writePDFReport(pdfReport, config.getReportsDir(), pdfFileName, log);
+                sastResults.setSastPDFLink(pdfLink);
                 sastResults.setPdfFileName(pdfFileName);
             }
         }

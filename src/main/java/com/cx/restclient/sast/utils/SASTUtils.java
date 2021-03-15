@@ -68,13 +68,14 @@ public abstract class SASTUtils {
 
     //PDF Report
     public static String writePDFReport(byte[] scanReport, File workspace, String pdfFileName,  Logger log) {
+        String pdfLink = "";
         try {
             FileUtils.writeByteArrayToFile(new File(workspace + CX_REPORT_LOCATION, pdfFileName), scanReport);
-            log.info("PDF report location: " + workspace + CX_REPORT_LOCATION + File.separator + pdfFileName);
+            pdfLink = workspace + CX_REPORT_LOCATION + File.separator + pdfFileName;
+            log.info("PDF report location: " + pdfLink);
         } catch (Exception e) {
             log.error("Failed to write PDF report to workspace: ", e.getMessage());
-            pdfFileName ="";
         }
-        return pdfFileName;
+        return pdfLink;
     }
 }

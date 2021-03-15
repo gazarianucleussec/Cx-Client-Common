@@ -289,6 +289,14 @@ public class CxShragaClient {
         config.setOsaFsaConfig(fsaConfig);
     }
 
+    public boolean updateSASTPdfLink(String pdfLink){
+        if(this.sastResults != null){
+            this.sastResults.setSastPDFLink(pdfLink);
+            return true;
+        }
+        return false;
+    }
+
     //Private methods
     private void resolveTeam() throws CxClientException, IOException {
         if (config.getTeamId() == null) {

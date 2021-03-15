@@ -626,9 +626,9 @@
         margin-right: 6px;
     }
 
-    .cx-report .pdf-report.download-icon, {
+    .cx-report .pdf-report.download-icon {
         margin-right: 6px;
-        border-left: solid 1px #d5d5d
+        border-left: 1px solid #d5d5d5;
     }
 
     .cx-report .summary-section .html-report {
@@ -862,7 +862,6 @@
         padding-bottom: 3px;
     }
 
-    }
     .scan-status .content-scan-status .title-scan-status.success {
         color: #38d87d;
     }
