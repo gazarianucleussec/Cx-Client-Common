@@ -165,7 +165,7 @@
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-archiver</artifactId>
-            <version>4.1.0</version>
+            <version>4.9.2</version>
             <exclusions>
                 <exclusion>
                     <artifactId>commons-compress</artifactId>
@@ -185,7 +185,7 @@
         <dependency>
             <groupId>com.checkmarx</groupId>
             <artifactId>cx-ws-fs-agent</artifactId>
-            <version>20.0.10</version>
+            <version>23.0.5</version>
             <exclusions>
                 <exclusion>
                     <groupId>javax.xml.bind</groupId>
